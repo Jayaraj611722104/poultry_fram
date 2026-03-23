@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}My Farms{% endblock %}
+{% block page_title %}<span data-ta="என் பண்ணைகள்" data-en="My Farms">My Farms</span>{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-house-fill" style="color:#2d6a4f"></i>
+    <span data-ta="பண்ணை மேலாண்மை" data-en="Farm Management">Farm Management</span>
+  </h2>
+  <a href="{{ url_for('farms.add') }}" class="btn-green">
+    <i class="bi bi-plus-lg"></i>
+    <span data-ta="பண்ணை சேர்" data-en="Add Farm">Add Farm</span>
+  </a>
+</div>
+<form method="GET" class="mb-4">
+  <div class="input-group" style="max-width:400px;">
+    <span class="input-group-text" style="background:#f0faf2;border-color:#ddeedd;"><i class="bi bi-search"></i></span>
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search farms..." data-ta="பண்ணைகளைத் தேடு..." data-en="Search farms...">
+    <button type="submit" class="btn-green" style="border-radius:0 9px 9px 0;"><span data-ta="தேடு" data-en="Search">Search</span></button>
+  </div>
+</form>
+{% if farms %}
+<div class="row g-3">
+  {% for farm in farms %}
+  <div class="col-md-6 col-lg-4">
+    <div class="farm-card">
+      <div class="farm-icon">🏡</div>
+      <div class="farm-name">{{ farm.name }}</div>
+      <div class="farm-location"><i class="bi bi-geo-alt-fill" style="color:#40916c"></i> {{ farm.village }}, {{ farm.district }}</div>
+      <div class="farm-location mt-1"><i class="bi bi-telephone-fill" style="color:#40916c"></i> {{ farm.phone }}</div>
+      <div class="farm-actions">
+        <a href="{{ url_for('chickens.index', farm_id=farm.id) }}" class="btn-outline-green" style="font-size:0.78rem;padding:5px 10px;"><i class="bi bi-egg-fill"></i> <span data-ta="கோழி" data-en="Chickens">Chickens</span></a>
+        <a href="{{ url_for('feed.index', farm_id=farm.id) }}" class="btn-outline-green" style="font-size:0.78rem;padding:5px 10px;"><i class="bi bi-bag-fill"></i> <span data-ta="தீவனம்" data-en="Feed">Feed</span></a>
+        <a href="{{ url_for('sales.index', farm_id=farm.id) }}" class="btn-outline-green" style="font-size:0.78rem;padding:5px 10px;"><i class="bi bi-cart-fill"></i> <span data-ta="விற்பனை" data-en="Sales">Sales</span></a>
+        <a href="{{ url_for('farms.edit', fid=farm.id) }}" class="btn-outline-green" style="font-size:0.78rem;padding:5px 10px;"><i class="bi bi-pencil"></i></a>
+        <form method="POST" action="{{ url_for('farms.delete', fid=farm.id) }}" style="display:inline"
+              onsubmit="return confirm(document.documentElement.getAttribute('data-lang') === 'ta' ? '{{ farm.name }} ஐ நீக்க வேண்டுமா? அனைத்து தரவும் அகற்றப்படும்.' : 'Delete {{ farm.name }}? All data will be removed.')">
+          <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius:9px;font-size:0.78rem;"><i class="bi bi-trash"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+  <div style="font-size:4rem">🏡</div>
+  <h4 class="mt-3" style="color:#2d6a4f"><span data-ta="பண்ணைகள் ஏதும் இல்லை" data-en="No farms yet">No farms yet</span></h4>
+  <p class="text-muted" data-ta="தொடங்க உங்கள் முதல் பண்ணையைச் சேர்க்கவும்" data-en="Add your first farm to get started">Add your first farm to get started</p>
+  <a href="{{ url_for('farms.add') }}" class="btn-green mt-2"><i class="bi bi-plus-lg"></i> <span data-ta="பண்ணை சேர்" data-en="Add Farm">Add Farm</span></a>
+</div>
+{% endif %}
+{% endblock %}

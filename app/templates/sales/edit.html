@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% block title %}{{ sale.sale_code }}{% endblock %}
+{% block page_title %}{{ sale.sale_code }} — {{ 'DRAFT' if sale.status == 'draft' else 'COMPLETED' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>
+    <i class="bi bi-cart-fill" style="color:#2d6a4f"></i>
+    {{ sale.sale_code }}
+    <span class="{{ 'badge-draft' if sale.status == 'draft' else 'badge-completed' }} ms-2">{{ sale.status | upper }}</span>
+  </h2>
+  <div class="d-flex gap-2">
+    {% if sale.status == 'draft' %}
+    <button class="btn-outline-green" onclick="saveDraft()">
+      <i class="bi bi-save"></i> <span data-ta="வரைவு சேமி" data-en="Save Draft">Save Draft</span>
+    </button>
+    <button class="btn-green" onclick="completeSale()" id="completeBtn">
+      <i class="bi bi-check-circle-fill"></i> <span data-ta="முடிக்க" data-en="Complete Sale">Complete Sale</span>
+    </button>
+    {% endif %}
+    <a href="{{ url_for('sales.index', farm_id=farm.id) }}" class="btn-outline-green">
+      <i class="bi bi-arrow-left"></i> <span data-ta="பின்னால் செல்" data-en="Back">Back</span>
+    </a>
+  </div>
+</div>
+
+{% if sale.status == 'completed' %}
+<div class="alert alert-success" style="border-radius:12px">
+  <i class="bi bi-check-circle-fill me-2"></i>
+  <span data-ta="இந்த விற்பனை முடிந்தது மற்றும் மாற்ற முடியாது." data-en="This sale is completed and locked.">This sale is completed and locked.</span>
+  <a href="{{ url_for('reports.sale_report', sale_id=sale.id) }}" class="ms-3 text-success fw-bold"><span data-ta="அறிக்கையைப் பார்க்க →" data-en="View Report →">View Report →</span></a>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <!-- Left: Entry Cards -->
+  <div class="col-lg-7">
+
+    <!-- Step 1: Empty Box Entries -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <div class="icon" style="background:#fff3cd;font-size:0.9rem">📦</div>
+        <div>
+          <span style="font-weight:600" data-ta="படி 1: வெற்றுப் பெட்டி மற்றும் ஏற்றும் உள்ளீடு" data-en="Step 1: Empty Box & Load Entry">Step 1: Empty Box &amp; Load Entry</span>
+          <div style="font-size:0.75rem;color:#6c757d;font-weight:400" data-ta="பெட்டிகள், எடைகள் மற்றும் பெட்டிக்கு கோழிகள் எண்ணிக்கையை உள்ளிடவும்" data-en="Enter boxes, weights, and chickens per box">Enter boxes, weights, and chickens per box</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="entryContainer">
+          <!-- Cards injected by JS -->
+        </div>
+        {% if sale.status == 'draft' %}
+        <div class="mt-3">
+          <button class="btn w-100 justify-content-center shadow-sm text-white fw-bold" style="font-size:0.98rem;padding:12px;background:linear-gradient(135deg, var(--amber), var(--amber-dark));border:none;border-radius:10px;transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'" onclick="addCard()">
+            <i class="bi bi-plus-circle-fill me-1"></i> <span data-ta="புதிய கார்டு சேர்" data-en="Add New Card">Add New Card</span>
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Step 2: Customer Details -->
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:#e8f4ff;font-size:0.9rem">🚚</div>
+        <span style="font-weight:600" data-ta="வாடிக்கையாளர் விவரங்கள்" data-en="Step 2: Customer Details">Step 2: Customer Details</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label class="form-label" data-ta="வாடிக்கையாளர் பெயர்" data-en="Customer Name">Customer Name</label>
+            <input type="text" id="custName" class="form-control" placeholder="Ravi Traders" {{ 'disabled' if sale.status == 'completed' }}>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" data-ta="தொலைபேசி" data-en="Phone">Phone</label>
+            <input type="tel" id="custPhone" class="form-control" placeholder="9123456780" {{ 'disabled' if sale.status == 'completed' }}>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" data-ta="வாகன எண்" data-en="Vehicle Number">Vehicle Number</label>
+            <input type="text" id="custVehicle" class="form-control" placeholder="TN30 AB1234" {{ 'disabled' if sale.status == 'completed' }}>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Live Summary -->
+  <div class="col-lg-5">
+    <div class="summary-box" style="position:sticky;top:80px">
+      <div style="font-size:1rem;font-weight:700;color:#b7e4c7;margin-bottom:16px">
+        📊 <span data-ta="நேரடி சுருக்கம்" data-en="Live Summary">Live Summary</span>
+      </div>
+      <div class="sum-row"><span class="sum-label" data-ta="மொத்த பெட்டிகள்" data-en="Total Empty Boxes">Total Empty Boxes</span><span class="sum-val" id="s_boxes">0</span></div>
+      <div class="sum-row"><span class="sum-label" data-ta="மொத்த வெற்று எடை" data-en="Total Empty Weight">Total Empty Weight</span><span class="sum-val" id="s_empty_wt">0.00 kg</span></div>
+      <div class="sum-row"><span class="sum-label" data-ta="மொத்த ஏற்றும் எடை" data-en="Total Load Weight">Total Load Weight</span><span class="sum-val" id="s_load_wt">0.00 kg</span></div>
+      <div class="sum-row"><span class="sum-label" data-ta="மொத்த கோழிகள்" data-en="Total Chickens">Total Chickens</span><span class="sum-val" id="s_chickens">0</span></div>
+      <div class="sum-row highlight"><span class="sum-label" data-ta="நிகர எடை" data-en="Net Weight">Net Weight</span><span class="sum-val" id="s_net_wt">0.00 kg</span></div>
+      <div class="sum-row"><span class="sum-label" data-ta="சராசரி எடை" data-en="Avg Weight/Chicken">Avg Weight/Chicken</span><span class="sum-val" id="s_avg">0.000 kg</span></div>
+      <div class="sum-row"><span class="sum-label" data-ta="டன்னேஜ்" data-en="Tonnage">Tonnage</span><span class="sum-val" id="s_ton">0.0000 ton</span></div>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.1)">
+        <div style="font-size:0.75rem;color:#95d5b2;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px" data-ta="பண்ணை விவரங்கள்" data-en="Farm Details">Farm Details</div>
+        <div style="font-size:0.82rem;color:#b7e4c7">🏡 {{ farm.name }}</div>
+        <div style="font-size:0.8rem;color:#95d5b2">📍 {{ farm.village }}, {{ farm.district }}</div>
+      </div>
+
+      {% if sale.status == 'completed' %}
+      <div class="mt-3 d-grid gap-2">
+        <a href="{{ url_for('reports.sale_report', sale_id=sale.id) }}" class="btn-outline-green" style="justify-content:center;border-color:rgba(255,255,255,0.3);color:#b7e4c7">
+          <i class="bi bi-file-earmark-text"></i> <span data-ta="முழு அறிக்கையைக் காண்க" data-en="View Full Report">View Full Report</span>
+        </a>
+        <a href="{{ url_for('reports.export_excel', sale_id=sale.id) }}" class="btn-green" style="justify-content:center;background:#217346">
+          <i class="bi bi-file-earmark-excel-fill"></i> <span data-ta="எக்செல் பதிவிறக்கம்" data-en="Download Excel">Download Excel</span>
+        </a>
+        <a href="{{ url_for('reports.export_pdf', sale_id=sale.id) }}" class="btn-green" style="justify-content:center;background:#c0392b">
+          <i class="bi bi-file-earmark-pdf-fill"></i> <span data-ta="PDF பதிவிறக்கம்" data-en="Download PDF">Download PDF</span>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+const saleId = {{ sale.id }};
+const isCompleted = {{ 'true' if sale.status == 'completed' else 'false' }};
+let cardCount = 0;
+
+function addCard(data = {}) {
+  cardCount++;
+  const n = cardCount;
+  const div = document.createElement('div');
+  div.className = 'entry-card';
+  div.id = 'card_' + n;
+  div.innerHTML = `
+    <div class="entry-card-header">
+      <span class="entry-num" data-ta="உள்ளீடு #${n}" data-en="Entry #${n}">Entry #${n}</span>
+      ${!isCompleted ? `<button type="button" onclick="removeCard(${n})" style="background:none;border:none;color:#e63946;cursor:pointer;font-size:1.1rem"><i class="bi bi-x-circle-fill"></i></button>` : ''}
+    </div>
+    <div class="row g-2">
+      <div class="col-6">
+        <label class="form-label" style="font-size:0.75rem" data-ta="வெற்று பெட்டிகள்" data-en="Empty Boxes">Empty Boxes</label>
+        <input type="number" class="form-control form-control-sm" id="eb_${n}" value="${data.empty_boxes||0}" min="0" oninput="recalcSummary()" ${isCompleted?'disabled':''}>
+      </div>
+      <div class="col-6">
+        <label class="form-label" style="font-size:0.75rem" data-ta="வெற்று எடை (kg)" data-en="Empty Weight (kg)">Empty Weight (kg)</label>
+        <input type="number" class="form-control form-control-sm" id="ew_${n}" value="${data.empty_weight||0}" step="0.1" min="0" oninput="recalcSummary()" ${isCompleted?'disabled':''}>
+      </div>
+      <div class="col-6">
+        <label class="form-label" style="font-size:0.75rem" data-ta="பெட்டிக்கு கோழிகள்" data-en="Chickens/Box">Chickens/Box</label>
+        <input type="number" class="form-control form-control-sm" id="cpb_${n}" value="${data.chickens_per_box||0}" min="0" oninput="recalcSummary()" ${isCompleted?'disabled':''}>
+      </div>
+      <div class="col-6">
+        <label class="form-label" style="font-size:0.75rem" data-ta="ஏற்றும் எடை (kg)" data-en="Load Weight (kg)">Load Weight (kg)</label>
+        <input type="number" class="form-control form-control-sm" id="lw_${n}" value="${data.load_weight||0}" step="0.1" min="0" oninput="recalcSummary()" ${isCompleted?'disabled':''}>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:0.78rem;color:#6c757d;padding:6px 10px;background:#f8fff8;border-radius:6px" id="cardSummary_${n}">—</div>
+  `;
+  document.getElementById('entryContainer').appendChild(div);
+  if (typeof applyLanguage === 'function') applyLanguage(currentLang);
+  recalcSummary();
+}
+
+function removeCard(n) {
+  const el = document.getElementById('card_' + n);
+  if (el) el.remove();
+  recalcSummary();
+}
+
+function getEntries() {
+  const entries = [];
+  document.querySelectorAll('.entry-card').forEach((card, idx) => {
+    const n = card.id.replace('card_', '');
+    entries.push({
+      empty_boxes: parseInt(document.getElementById('eb_' + n)?.value) || 0,
+      empty_weight: parseFloat(document.getElementById('ew_' + n)?.value) || 0,
+      chickens_per_box: parseInt(document.getElementById('cpb_' + n)?.value) || 0,
+      load_weight: parseFloat(document.getElementById('lw_' + n)?.value) || 0,
+    });
+  });
+  return entries;
+}
+
+function recalcSummary() {
+  let totalBoxes = 0, totalEmptyWt = 0, totalLoadWt = 0, totalChickens = 0;
+  document.querySelectorAll('.entry-card').forEach(card => {
+    const n = card.id.replace('card_', '');
+    const eb = parseInt(document.getElementById('eb_' + n)?.value) || 0;
+    const ew = parseFloat(document.getElementById('ew_' + n)?.value) || 0;
+    const cpb = parseInt(document.getElementById('cpb_' + n)?.value) || 0;
+    const lw = parseFloat(document.getElementById('lw_' + n)?.value) || 0;
+    const tc = eb * cpb;
+    const nw = lw - ew;
+    totalBoxes += eb; totalEmptyWt += ew; totalLoadWt += lw; totalChickens += tc;
+    const cs = document.getElementById('cardSummary_' + n);
+    if (cs) {
+      if (currentLang === 'ta') {
+        cs.textContent = `கோழிகள்: ${tc} | நிகர எடை: ${nw.toFixed(2)} கிலோ`;
+      } else {
+        cs.textContent = `Chickens: ${tc} | Net: ${nw.toFixed(2)} kg`;
+      }
+    }
+  });
+  const netWt = totalLoadWt - totalEmptyWt;
+  const avgWt = totalChickens > 0 ? netWt / totalChickens : 0;
+  const tonnage = netWt / 1000;
+  document.getElementById('s_boxes').textContent = totalBoxes;
+  document.getElementById('s_empty_wt').textContent = totalEmptyWt.toFixed(2) + ' kg';
+  document.getElementById('s_load_wt').textContent = totalLoadWt.toFixed(2) + ' kg';
+  document.getElementById('s_chickens').textContent = totalChickens;
+  document.getElementById('s_net_wt').textContent = netWt.toFixed(2) + ' kg';
+  document.getElementById('s_avg').textContent = avgWt.toFixed(3) + ' kg';
+  document.getElementById('s_ton').textContent = tonnage.toFixed(4) + ' ton';
+}
+
+function getCustomer() {
+  return {
+    name: document.getElementById('custName')?.value || '',
+    phone: document.getElementById('custPhone')?.value || '',
+    vehicle_number: document.getElementById('custVehicle')?.value || '',
+    price_per_kg: 0
+  };
+}
+
+function saveDraft() {
+  fetch('/sales/api/save-draft/' + saleId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entries: getEntries() })
+  }).then(r => r.json()).then(res => {
+    showToast(res.status === 'ok' ? (currentLang === 'ta' ? '💾 வரைவு சேமிக்கப்பட்டது — ' : '💾 Draft saved — ') + res.sale_code : (currentLang === 'ta' ? '❌ தவறு: ' : '❌ ') + res.message,
+              res.status === 'ok' ? 'success' : 'danger');
+  });
+}
+
+function completeSale() {
+  const entries = getEntries();
+  if (!entries.length || entries.every(e => e.empty_boxes === 0)) {
+    showToast(currentLang === 'ta' ? '❌ தயவுசெய்து ஒரு உள்ளீடாவது சேர்க்கவும்' : '❌ Please add at least one entry', 'danger'); return;
+  }
+  const cust = getCustomer();
+  if (!cust.name.trim()) {
+    showToast(currentLang === 'ta' ? '❌ வாடிக்கையாளர் பெயர் தேவை' : '❌ Customer name is required', 'danger'); return;
+  }
+  if (!confirm(currentLang === 'ta' ? 'இந்த விற்பனையை முடிக்க வேண்டுமா? இதை மாற்ற முடியாது.' : 'Mark this sale as completed? This cannot be undone.')) return;
+
+  fetch('/sales/api/complete/' + saleId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entries, customer: cust })
+  }).then(r => r.json()).then(res => {
+    if (res.status === 'ok') {
+      showToast(currentLang === 'ta' ? '✅ விற்பனை முடிந்தது!' : '✅ Sale completed!', 'success');
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      showToast('❌ ' + res.message, 'danger');
+    }
+  });
+}
+
+function showToast(msg, type) {
+  const div = document.createElement('div');
+  div.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+  div.style.cssText = 'z-index:9999;border-radius:10px;min-width:260px';
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
+}
+
+// Load existing data
+fetch('/sales/api/get/' + saleId).then(r => r.json()).then(data => {
+  if (data.entries && data.entries.length) {
+    data.entries.forEach(e => addCard(e));
+  } else if (!isCompleted) {
+    addCard();
+  }
+  if (data.customer) {
+    if (document.getElementById('custName')) document.getElementById('custName').value = data.customer.name || '';
+    if (document.getElementById('custPhone')) document.getElementById('custPhone').value = data.customer.phone || '';
+    if (document.getElementById('custVehicle')) document.getElementById('custVehicle').value = data.customer.vehicle_number || '';
+  }
+  recalcSummary();
+});
+</script>
+{% endblock %}

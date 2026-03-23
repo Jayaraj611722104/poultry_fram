@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Register User{% endblock %}
+{% block page_title %}<span data-ta="பயனர் பதிவு" data-en="Register User">Register User</span>{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="logo-icon">🐔</div>
+    <h1 data-ta="பெருஃபார்ம்" data-en="PeruFarm">PeruFarm</h1>
+    <p data-ta="புதிய பயனர் உருவாக்கவும்" data-en="Create New User">Create New User</p>
+  </div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}<button class="btn-close" data-bs-dismiss="alert"></button></div>
+    {% endfor %}
+  {% endwith %}
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label" data-ta="பயனர் பெயர்" data-en="Username">Username</label>
+      <input type="text" name="username" class="form-control" placeholder="admin01" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" data-ta="கடவுச்சொல்" data-en="Password">Password</label>
+      <input type="password" name="password" class="form-control" required>
+    </div>
+    <div class="mb-4">
+      <label class="form-label" data-ta="பங்கு" data-en="Role">Role</label>
+      <select name="role" class="form-select">
+        <option value="user" data-ta="பயனர்" data-en="User">User</option>
+        <option value="admin" data-ta="நிர்வாகி" data-en="Admin">Admin</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-green w-100 justify-content-center" style="padding:11px;">
+      <i class="bi bi-person-plus"></i> <span data-ta="பயனர் உருவாக்கவும்" data-en="Create User">Create User</span>
+    </button>
+  </form>
+  <div class="text-center mt-3">
+    {% if current_user.is_authenticated %}
+      <small><a href="{{ url_for('auth.users') }}" style="color:#2d6a4f;" data-ta="பயனர்களுக்குத் திரும்பு" data-en="Back to Users">Back to Users</a></small>
+    {% else %}
+      <small><a href="{{ url_for('auth.login') }}" style="color:#2d6a4f;" data-ta="உள்நுழைய திரும்பவும்" data-en="Back to Login">Back to Login</a></small>
+    {% endif %}
+  </div>
+
+  <div class="text-center mt-3">
+    <button type="button" class="lang-btn" onclick="toggleLanguage()" id="langBtn" style="display:inline-flex;width:auto;">
+      <i class="bi bi-translate"></i> தமிழ்
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 70vh;">
+  {{ self.auth_content() }}
+</div>
+{% endblock %}

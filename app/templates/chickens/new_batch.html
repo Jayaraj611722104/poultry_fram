@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}New Batch{% endblock %}
+{% block page_title %}<span data-ta="புதிய கோழி தொகுதி" data-en="New Chicken Batch">New Chicken Batch</span>{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header"><div class="icon">🐔</div> <span data-ta="புதிய தொகுதி" data-en="New Batch">New Batch</span> — {{ farm.name }}</div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label" data-ta="ஆரம்ப கோழிகள் எண்ணிக்கை" data-en="Initial Chicken Count">Initial Chicken Count</label>
+            <input type="number" name="initial_count" class="form-control" placeholder="2000" min="1" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" data-ta="தொடக்க தேதி" data-en="Start Date">Start Date</label>
+            <input type="date" name="start_date" class="form-control" required value="{{ today }}">
+          </div>
+          <div class="mb-4">
+            <label class="form-label" data-ta="மொத்த நாட்கள்" data-en="Total Days (45-50)">Total Days (45–50)</label>
+            <select name="total_days" class="form-select">
+              <option value="45" data-ta="45 நாட்கள்" data-en="45 days">45 days</option>
+              <option value="50" selected data-ta="50 நாட்கள்" data-en="50 days">50 days</option>
+            </select>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn-green"><i class="bi bi-check-lg"></i> <span data-ta="உருவாக்கு" data-en="Create Batch">Create Batch</span></button>
+            <a href="{{ url_for('chickens.index', farm_id=farm.id) }}" class="btn-outline-green"><i class="bi bi-x-lg"></i> <span data-ta="ரத்துசெய்" data-en="Cancel">Cancel</span></a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelector('[name=start_date]').value = new Date().toISOString().slice(0,10);
+</script>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Feed Management{% endblock %}
+{% block page_title %}🌾 <span data-ta="தீவனம்" data-en="Feed">Feed</span> — {{ farm.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-bag-fill" style="color:#2d6a4f"></i>
+    <span data-ta="தீவன மேலாண்மை" data-en="Feed Management">Feed Management</span>
+    <small class="text-muted fs-6 fw-normal">— {{ farm.name }}</small>
+  </h2>
+  <a href="{{ url_for('farms.index') }}" class="btn-outline-green"><i class="bi bi-arrow-left"></i> <span data-ta="பின்னால் செல்" data-en="Back">Back</span></a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-label" data-ta="மொத்த சேர்க்கை" data-en="Total Added">Total Added</div>
+      <div class="stat-value">{{ total_added }}</div>
+      <div class="stat-sub" data-ta="பைகள்" data-en="bags">bags</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card amber">
+      <div class="stat-label" data-ta="மொத்த பயன்பாடு" data-en="Total Used">Total Used</div>
+      <div class="stat-value" style="color:#e76f51">{{ "%.1f"|format(total_used) }}</div>
+      <div class="stat-sub" data-ta="பைகள்" data-en="bags">bags</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card {{ 'red' if remaining < 5 else '' }}">
+      <div class="stat-label" data-ta="எஞ்சியுள்ளது" data-en="Remaining">Remaining</div>
+      <div class="stat-value" style="{{ 'color:#e63946' if remaining < 5 else '' }}">{{ "%.1f"|format(remaining) }}</div>
+      <div class="stat-sub"><span data-ta="பைகள்" data-en="bags">bags</span> {% if remaining < 5 %}<span style="color:#e63946" data-ta="⚠ குறைவான இருப்பு!" data-en="⚠ Low stock!">⚠ Low stock!</span>{% endif %}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header"><div class="icon">➕</div> <span data-ta="தீவனம் சேர்" data-en="Add Feed Stock">Add Feed Stock</span></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('feed.add_stock', farm_id=farm.id) }}">
+          <div class="mb-3">
+            <label class="form-label" data-ta="பைகள் எண்ணிக்கை" data-en="Number of Bags">Number of Bags</label>
+            <input type="number" name="bags_added" class="form-control" placeholder="50" min="1" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" data-ta="தேதி" data-en="Date">Date</label>
+            <input type="date" name="date" class="form-control" id="stockDate" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" data-ta="குறிப்பு" data-en="Note (optional)">Note (optional)</label>
+            <input type="text" name="note" class="form-control" placeholder="e.g. Morning delivery" data-ta="உதாரணம்: காலை விநியோகம்" data-en="e.g. Morning delivery">
+          </div>
+          <button type="submit" class="btn-green"><i class="bi bi-plus-lg"></i> <span data-ta="சேர்" data-en="Add Stock">Add Stock</span></button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><div class="icon">📋</div> <span data-ta="சேர்க்கை வரலாறு" data-en="Stock History">Stock History</span></div>
+      <div class="card-body p-0">
+        {% if stocks %}
+        <table class="data-table">
+          <thead><tr>
+            <th data-ta="தேதி" data-en="Date">Date</th>
+            <th data-ta="பைகள்" data-en="Bags">Bags</th>
+            <th data-ta="குறிப்பு" data-en="Note">Note</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+          {% for s in stocks %}
+          <tr>
+            <td>{{ s.date.strftime('%d-%m-%Y') }}</td>
+            <td><strong style="color:#2d6a4f">+{{ s.bags_added }}</strong></td>
+            <td><small class="text-muted">{{ s.note or '—' }}</small></td>
+            <td>
+              <form method="POST" action="{{ url_for('feed.delete_stock', farm_id=farm.id, sid=s.id) }}"
+                    style="display:inline" onsubmit="return confirm(document.documentElement.getAttribute('data-lang') === 'ta' ? 'இந்த பதிவை நீக்க வேண்டுமா?' : 'Delete this entry?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius:6px"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-4 text-muted" data-ta="சேர்க்கை பதிவுகள் ஏதும் இல்லை" data-en="No stock entries yet">No stock entries yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">📊</div>
+        <span data-ta="தினசரி பயன்பாடு" data-en="Daily Usage Entry">Daily Usage Entry</span>
+        <button class="btn-green ms-auto" style="font-size:0.8rem;padding:5px 12px" onclick="saveUsage()">
+          <i class="bi bi-save"></i> <span data-ta="சேமிக்க" data-en="Save">Save</span>
+        </button>
+      </div>
+      <div class="card-body">
+        <div class="day-grid">
+          {% for day in range(1, 51) %}
+          {% set usage = usages | selectattr('day_number', 'equalto', day) | first %}
+          <div class="day-card">
+            <div class="day-num" data-ta="நாள் {{ day }}" data-en="Day {{ day }}">Day {{ day }}</div>
+            <input type="number" class="day-input" id="usage_{{ day }}" style="color:#2d6a4f"
+                   value="{{ usage.bags_used if usage else 0 }}" min="0" step="0.5" placeholder="0">
+            <div class="day-date" style="font-size:0.7rem;color:#6c757d" data-ta="பைகள்" data-en="bags">bags</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('stockDate').value = new Date().toISOString().slice(0,10);
+
+function saveUsage() {
+  const data = {};
+  for (let d = 1; d <= 50; d++) {
+    const el = document.getElementById('usage_' + d);
+    if (el) data[d] = { bags_used: parseFloat(el.value) || 0 };
+  }
+  fetch('{{ url_for("feed.save_usage", farm_id=farm.id) }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(r => r.json()).then(res => {
+    showToast(res.status === 'ok' ? '✅ ' + res.message : '❌ ' + res.message, res.status === 'ok' ? 'success' : 'danger');
+  });
+}
+
+function showToast(msg, type) {
+  const div = document.createElement('div');
+  div.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+  div.style.zIndex = 9999; div.style.borderRadius = '10px';
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
+}
+</script>
+{% endblock %}

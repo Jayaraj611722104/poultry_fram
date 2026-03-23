@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Chicken Monitoring{% endblock %}
+{% block page_title %}🐔 {{ farm.name }} - <span data-ta="கோழிகள்" data-en="Chickens">Chickens</span>{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-egg-fill" style="color:#2d6a4f"></i>
+    <span data-ta="தினசரி கண்காணிப்பு" data-en="Daily Monitoring">Daily Monitoring</span>
+    <small class="text-muted fs-6 fw-normal">— {{ farm.name }}</small>
+  </h2>
+  <a href="{{ url_for('chickens.new_batch', farm_id=farm.id) }}" class="btn-green">
+    <i class="bi bi-plus-lg"></i>
+    <span data-ta="புதிய தொகுதி" data-en="New Batch">New Batch</span>
+  </a>
+</div>
+{% if batches %}
+<div class="row g-3">
+  {% for batch in batches %}
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <div style="font-weight:600;color:#1a472a;font-size:1rem"><span data-ta="தொகுதி #{{ loop.index }}" data-en="Batch #{{ loop.index }}">Batch #{{ loop.index }}</span></div>
+            <div class="text-muted" style="font-size:0.82rem"><span data-ta="தொடங்கியது" data-en="Started">Started</span>: {{ batch.start_date.strftime('%d %b %Y') }} &bull; {{ batch.total_days }} <span data-ta="நாட்கள்" data-en="days">days</span></div>
+          </div>
+          <span class="badge-completed" data-ta="செயலில் உள்ளது" data-en="Active">Active</span>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-4">
+            <div class="stat-card" style="padding:12px">
+              <div class="stat-label" data-ta="ஆரம்பம்" data-en="Initial">Initial</div>
+              <div class="stat-value" style="font-size:1.3rem">{{ batch.initial_count }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stat-card red" style="padding:12px">
+              <div class="stat-label" data-ta="இறப்புகள்" data-en="Deaths">Deaths</div>
+              <div class="stat-value" style="font-size:1.3rem;color:#e63946">{{ batch.daily_records | sum(attribute='deaths') }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stat-card" style="padding:12px">
+              <div class="stat-label" data-ta="மீதமுள்ளவை" data-en="Remaining">Remaining</div>
+              {% set last = batch.daily_records | sort(attribute='day_number') | last %}
+              <div class="stat-value" style="font-size:1.3rem">{{ last.remaining if last else batch.initial_count }}</div>
+            </div>
+          </div>
+        </div>
+        <a href="{{ url_for('chickens.view_batch', batch_id=batch.id) }}" class="btn-green" style="font-size:0.82rem;padding:7px 14px;">
+          <i class="bi bi-pencil-square"></i>
+          <span data-ta="உள்ளீடு செய்" data-en="Enter Daily Data">Enter Daily Data</span>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+  <div style="font-size:4rem">🐔</div>
+  <h4 class="mt-3" style="color:#2d6a4f"><span data-ta="தொகுதிகள் ஏதும் இல்லை" data-en="No batches yet">No batches yet</span></h4>
+  <p class="text-muted" data-ta="கண்காணிப்பைத் தொடங்க புதிய தொகுதியை உருவாக்கவும்" data-en="Create a new batch to start tracking">Create a new batch to start tracking</p>
+  <a href="{{ url_for('chickens.new_batch', farm_id=farm.id) }}" class="btn-green mt-2"><i class="bi bi-plus-lg"></i> <span data-ta="புதிய தொகுதி" data-en="New Batch">New Batch</span></a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}<span data-ta="{{ 'பண்ணை திருத்து' if farm else 'பண்ணை சேர்' }}" data-en="{{ 'Edit Farm' if farm else 'Add Farm' }}">{{ 'Edit Farm' if farm else 'Add Farm' }}</span>{% endblock %}
+{% block page_title %}<span data-ta="{{ 'பண்ணை திருத்து' if farm else 'பண்ணை சேர்' }}" data-en="{{ 'Edit Farm' if farm else 'Add Farm' }}">{{ 'Edit Farm' if farm else 'Add Farm' }}</span>{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">🏡</div>
+        <span data-ta="{{ 'பண்ணை திருத்து' if farm else 'புதிய பண்ணை சேர்' }}" data-en="{{ 'Edit Farm' if farm else 'Add New Farm' }}">{{ 'Edit Farm' if farm else 'Add New Farm' }}</span>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label" data-ta="பண்ணை பெயர்" data-en="Farm Name">Farm Name</label>
+            <input type="text" name="name" class="form-control" value="{{ farm.name if farm else '' }}" placeholder="Sri Murugan Poultry Farm" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" data-ta="கிராமம்" data-en="Village">Village</label>
+            <input type="text" name="village" class="form-control" value="{{ farm.village if farm else '' }}" placeholder="Omalur" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" data-ta="மாவட்டம்" data-en="District">District</label>
+            <input type="text" name="district" class="form-control" value="{{ farm.district if farm else '' }}" placeholder="Salem" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label" data-ta="தொலைபேசி எண்" data-en="Phone Number">Phone Number</label>
+            <input type="tel" name="phone" class="form-control" value="{{ farm.phone if farm else '' }}" placeholder="9876543210" required>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn-green">
+              <i class="bi bi-check-lg"></i>
+              <span data-ta="சேமிக்க" data-en="Save">Save</span>
+            </button>
+            <a href="{{ url_for('farms.index') }}" class="btn-outline-green">
+              <i class="bi bi-x-lg"></i>
+              <span data-ta="ரத்து" data-en="Cancel">Cancel</span>
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

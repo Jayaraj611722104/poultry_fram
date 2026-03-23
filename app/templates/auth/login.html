@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block auth_content %}
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="logo-icon">🐔</div>
+    <h1 data-ta="பெருஃபார்ம்" data-en="PeruFarm">PeruFarm</h1>
+    <p data-ta="கோழி பண்ணை மேலாண்மை அமைப்பு" data-en="Poultry Farm Management System">Poultry Farm Management System</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show">
+        {{ msg }}<button class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label" data-ta="பயனர் பெயர்" data-en="Username">Username</label>
+      <div class="input-group">
+        <span class="input-group-text" style="background:#f0faf2;border-color:#ddeedd;"><i class="bi bi-person"></i></span>
+        <input type="text" name="username" class="form-control" placeholder="admin01" required>
+      </div>
+    </div>
+    <div class="mb-4">
+      <label class="form-label" data-ta="கடவுச்சொல்" data-en="Password">Password</label>
+      <div class="input-group">
+        <span class="input-group-text" style="background:#f0faf2;border-color:#ddeedd;"><i class="bi bi-lock"></i></span>
+        <input type="password" name="password" class="form-control" placeholder="••••••" required>
+      </div>
+    </div>
+    <button type="submit" class="btn-green w-100 justify-content-center" style="padding:11px;">
+      <i class="bi bi-box-arrow-in-right"></i>
+      <span data-ta="உள்நுழை" data-en="Login">Login</span>
+    </button>
+  </form>
+
+  {% if show_register %}
+  <div class="text-center mt-3">
+    <small class="text-muted"><span data-ta="கணக்கு இல்லையா?" data-en="Don't have an account?">Don't have an account?</span>
+      <a href="{{ url_for('auth.register') }}" style="color:#2d6a4f;" data-ta="பதிவு செய்யுங்கள்" data-en="Register">Register</a>
+    </small>
+  </div>
+  {% endif %}
+
+  <div class="text-center mt-3">
+    <button class="lang-btn" onclick="toggleLanguage()" id="langBtn" style="display:inline-flex;width:auto;">
+      <i class="bi bi-translate"></i> தமிழ்
+    </button>
+  </div>
+</div>
+{% endblock %}

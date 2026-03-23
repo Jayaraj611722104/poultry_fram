@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}<span data-ta="நிர்வாகி புள்ளிவிவரம்" data-en="Admin Dashboard">Admin Dashboard</span>{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="icon">📊</div>
+                <span data-ta="பண்ணை வாரியாக விற்பனை (கிலோ)" data-en="Chicken Sales by Farm (kg)">Chicken Sales by Farm (kg)</span>
+            </div>
+            <div class="card-body">
+                <canvas id="kgBarChart" style="max-height: 400px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="icon">🥧</div>
+                <span data-ta="விற்பனைப் பகிர்வு (%)" data-en="Sales Distribution (%)">Sales Distribution (%)</span>
+            </div>
+            <div class="card-body">
+                <canvas id="kgPieChart" style="max-height: 350px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="icon">👥</div>
+                <span data-ta="பண்ணை வாரியாக மொத்த கோழிகள்" data-en="Total Chickens by Farm">Total Chickens by Farm</span>
+            </div>
+            <div class="card-body">
+                <canvas id="chickenCountChart" style="max-height: 350px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Data from Flask
+    const farmLabels = {{ farm_data | map(attribute='name') | list | tojson }};
+    const kgData = {{ farm_data | map(attribute='kg') | list | tojson }};
+    const chickenCounts = {{ farm_chickens | map(attribute='count') | list | tojson }};
+
+    const colors = [
+        'rgba(45, 106, 79, 0.7)',  // Green
+        'rgba(231, 111, 81, 0.7)', // Orange
+        'rgba(42, 157, 143, 0.7)', // Teal
+        'rgba(233, 196, 106, 0.7)', // Yellow
+        'rgba(38, 70, 83, 0.7)',   // Dark Blue
+        'rgba(181, 23, 158, 0.7)',  // Pink
+        'rgba(86, 11, 173, 0.7)'   // Purple
+    ];
+    
+    const borderColors = colors.map(c => c.replace('0.7', '1'));
+
+    // 1. Bar Chart - KG
+    new Chart(document.getElementById('kgBarChart'), {
+        type: 'bar',
+        data: {
+            labels: farmLabels,
+            datasets: [{
+                label: document.documentElement.getAttribute('data-lang') === 'ta' ? 'மொத்த கிலோ' : 'Total KG',
+                data: kgData,
+                backgroundColor: colors,
+                borderColor: borderColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 2. Pie Chart - KG Distribution
+    new Chart(document.getElementById('kgPieChart'), {
+        type: 'pie',
+        data: {
+            labels: farmLabels,
+            datasets: [{
+                data: kgData,
+                backgroundColor: colors,
+                borderColor: '#ffffff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // 3. Horizontal Bar - Chicken Counts
+    new Chart(document.getElementById('chickenCountChart'), {
+        type: 'bar',
+        data: {
+            labels: farmLabels,
+            datasets: [{
+                label: document.documentElement.getAttribute('data-lang') === 'ta' ? 'கோழிகளின் எண்ணிக்கை' : 'Chicken Count',
+                data: chickenCounts,
+                backgroundColor: 'rgba(231, 111, 81, 0.6)',
+                borderColor: '#e76f51',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true
+        }
+    });
+</script>
+{% endblock %}

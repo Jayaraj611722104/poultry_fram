@@ -35,6 +35,7 @@ def create_app():
     from app.routes.feed import feed_bp
     from app.routes.sales import sales_bp
     from app.routes.reports import reports_bp
+    from app.routes.admin import admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(farms_bp)
@@ -42,6 +43,7 @@ def create_app():
     app.register_blueprint(feed_bp)
     app.register_blueprint(sales_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(admin_bp)
 
     with app.app_context():
         db.create_all()

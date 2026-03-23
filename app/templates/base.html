@@ -48,7 +48,11 @@
     </a></li>
     <li class="nav-section" data-ta="கணினி" data-en="System">System</li>
     {% if current_user.role == 'admin' %}
-    <li><a href="{{ url_for('auth.users') }}" class="nav-link">
+    <li><a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+      <i class="bi bi-graph-up"></i>
+      <span data-ta="நிர்வாகி புள்ளிவிவரம்" data-en="Admin Dashboard">Admin Dashboard</span>
+    </a></li>
+    <li><a href="{{ url_for('auth.users') }}" class="nav-link {% if request.endpoint == 'auth.users' %}active{% endif %}">
       <i class="bi bi-people-fill"></i>
       <span data-ta="பயனர்கள்" data-en="Users">Users</span>
     </a></li>

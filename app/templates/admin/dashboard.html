@@ -33,10 +33,35 @@
         <div class="card">
             <div class="card-header">
                 <div class="icon">👥</div>
+                <span data-ta="பயனர் வாரியாக விற்பனை (கிலோ)" data-en="Sales by User (kg)">Sales by User (kg)</span>
+            </div>
+            <div class="card-body">
+                <canvas id="userPerformanceChart" style="max-height: 350px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="icon">👤</div>
+                <span data-ta="பயனர் பாத்திரங்கள்" data-en="User Roles Distribution">User Roles Distribution</span>
+            </div>
+            <div class="card-body">
+                <canvas id="userRolesChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="icon">🐔</div>
                 <span data-ta="பண்ணை வாரியாக மொத்த கோழிகள்" data-en="Total Chickens by Farm">Total Chickens by Farm</span>
             </div>
             <div class="card-body">
-                <canvas id="chickenCountChart" style="max-height: 350px;"></canvas>
+                <canvas id="chickenCountChart" style="max-height: 300px;"></canvas>
             </div>
         </div>
     </div>
@@ -48,41 +73,37 @@
     const farmLabels = {{ farm_data | map(attribute='name') | list | tojson }};
     const kgData = {{ farm_data | map(attribute='kg') | list | tojson }};
     const chickenCounts = {{ farm_chickens | map(attribute='count') | list | tojson }};
+    
+    const userLabels = {{ user_performance | map(attribute='username') | list | tojson }};
+    const userKgData = {{ user_performance | map(attribute='kg') | list | tojson }};
+    
+    const roleLabels = {{ user_role_data | map(attribute='role') | list | tojson }};
+    const roleCounts = {{ user_role_data | map(attribute='count') | list | tojson }};
 
     const colors = [
-        'rgba(45, 106, 79, 0.7)',  // Green
-        'rgba(231, 111, 81, 0.7)', // Orange
-        'rgba(42, 157, 143, 0.7)', // Teal
-        'rgba(233, 196, 106, 0.7)', // Yellow
-        'rgba(38, 70, 83, 0.7)',   // Dark Blue
-        'rgba(181, 23, 158, 0.7)',  // Pink
-        'rgba(86, 11, 173, 0.7)'   // Purple
+        'rgba(45, 106, 79, 0.7)',  'rgba(231, 111, 81, 0.7)', 'rgba(42, 157, 143, 0.7)', 
+        'rgba(233, 196, 106, 0.7)', 'rgba(38, 70, 83, 0.7)', 'rgba(181, 23, 158, 0.7)', 'rgba(86, 11, 173, 0.7)'
     ];
     
     const borderColors = colors.map(c => c.replace('0.7', '1'));
 
-    // 1. Bar Chart - KG
+    // 1. Bar Chart - KG by Farm
     new Chart(document.getElementById('kgBarChart'), {
         type: 'bar',
         data: {
             labels: farmLabels,
             datasets: [{
-                label: document.documentElement.getAttribute('data-lang') === 'ta' ? 'மொத்த கிலோ' : 'Total KG',
+                label: document.documentElement.getAttribute('data-lang') === 'ta' ? 'மொத்த கிலோ (பண்ணை)' : 'Total KG (Farm)',
                 data: kgData,
-                backgroundColor: colors,
-                borderColor: borderColors,
+                backgroundColor: 'rgba(45, 106, 79, 0.6)',
+                borderColor: '#2d6a4f',
                 borderWidth: 1
             }]
         },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
     });
 
-    // 2. Pie Chart - KG Distribution
+    // 2. Pie Chart - Farm KG Distribution
     new Chart(document.getElementById('kgPieChart'), {
         type: 'pie',
         data: {
@@ -94,15 +115,41 @@
                 borderWidth: 2
             }]
         },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
     });
 
-    // 3. Horizontal Bar - Chicken Counts
+    // 3. Bar Chart - Performance by User
+    new Chart(document.getElementById('userPerformanceChart'), {
+        type: 'bar',
+        data: {
+            labels: userLabels,
+            datasets: [{
+                label: document.documentElement.getAttribute('data-lang') === 'ta' ? 'மொத்த கிலோ (பயனர்)' : 'Total KG (User)',
+                data: userKgData,
+                backgroundColor: 'rgba(42, 157, 143, 0.6)',
+                borderColor: '#2a9d8f',
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+
+    // 4. Doughnut Chart - User Roles
+    new Chart(document.getElementById('userRolesChart'), {
+        type: 'doughnut',
+        data: {
+            labels: roleLabels,
+            datasets: [{
+                data: roleCounts,
+                backgroundColor: ['rgba(38, 70, 83, 0.7)', 'rgba(231, 111, 81, 0.7)'],
+                borderColor: '#ffffff',
+                borderWidth: 2
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // 5. Horizontal Bar - Chicken Counts by Farm
     new Chart(document.getElementById('chickenCountChart'), {
         type: 'bar',
         data: {
@@ -110,15 +157,12 @@
             datasets: [{
                 label: document.documentElement.getAttribute('data-lang') === 'ta' ? 'கோழிகளின் எண்ணிக்கை' : 'Chicken Count',
                 data: chickenCounts,
-                backgroundColor: 'rgba(231, 111, 81, 0.6)',
-                borderColor: '#e76f51',
+                backgroundColor: 'rgba(233, 196, 106, 0.6)',
+                borderColor: '#e9c46a',
                 borderWidth: 1
             }]
         },
-        options: {
-            indexAxis: 'y',
-            responsive: true
-        }
+        options: { indexAxis: 'y', responsive: true }
     });
 </script>
 {% endblock %}

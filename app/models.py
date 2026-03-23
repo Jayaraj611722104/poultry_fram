@@ -58,6 +58,7 @@ class ChickenDaily(db.Model):
     batch_id = db.Column(db.Integer, db.ForeignKey('chicken_batches.id'), nullable=False)
     day_number = db.Column(db.Integer, nullable=False)
     deaths = db.Column(db.Integer, default=0)
+    sold_count = db.Column(db.Integer, default=0)
     remaining = db.Column(db.Integer, nullable=False)
     entry_date = db.Column(db.Date, nullable=True)
     notes = db.Column(db.String(200), nullable=True)

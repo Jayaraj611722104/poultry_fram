@@ -18,10 +18,8 @@ def dashboard():
     farms = Farm.query.all()
     
     # 1. Total KG of chicken per farm (sum of net weight in completed sales)
-    # net_weight = load_weight - empty_weight
     farm_data = []
     for farm in farms:
-        # Sum of (load_weight - empty_weight) for completed sales of this farm
         total_kg = db.session.query(
             func.sum(SaleEntry.load_weight - SaleEntry.empty_weight)
         ).join(Sale).filter(
@@ -29,10 +27,7 @@ def dashboard():
             Sale.status == 'completed'
         ).scalar() or 0.0
         
-        farm_data.append({
-            'name': farm.name,
-            'kg': round(total_kg, 2)
-        })
+        farm_data.append({'name': farm.name, 'kg': round(total_kg, 2)})
 
     # 2. Total Chickens per farm
     farm_chickens = []
@@ -43,12 +38,29 @@ def dashboard():
             Sale.farm_id == farm.id,
             Sale.status == 'completed'
         ).scalar() or 0
-        
-        farm_chickens.append({
-            'name': farm.name,
-            'count': total_chickens
-        })
+        farm_chickens.append({'name': farm.name, 'count': total_chickens})
+
+    # 3. User Statistics
+    from app.models import User
+    user_counts = db.session.query(User.role, func.count(User.id)).group_by(User.role).all()
+    user_role_data = [{'role': r, 'count': c} for r, c in user_counts]
+
+    # 4. Performance per User (Sum of sales kg for all farms owned by a user)
+    from app.models import User
+    users = User.query.all()
+    user_performance = []
+    for u in users:
+        total_kg = db.session.query(
+            func.sum(SaleEntry.load_weight - SaleEntry.empty_weight)
+        ).join(Sale).join(Farm).filter(
+            Farm.user_id == u.id,
+            Sale.status == 'completed'
+        ).scalar() or 0.0
+        if total_kg > 0:
+            user_performance.append({'username': u.username, 'kg': round(total_kg, 2)})
 
     return render_template('admin/dashboard.html', 
                           farm_data=farm_data, 
-                          farm_chickens=farm_chickens)
+                          farm_chickens=farm_chickens,
+                          user_role_data=user_role_data,
+                          user_performance=user_performance)

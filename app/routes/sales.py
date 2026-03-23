@@ -121,7 +121,32 @@ def complete_sale(sale_id):
 
     sale.status = 'completed'
     from datetime import date as d
-    sale.sale_date = d.today()
+    sale_date = d.today()
+    sale.sale_date = sale_date
+    
+    # Update ChickenDaily records to subtract sold chickens
+    total_sold = sum(int(e.get('empty_boxes', 0)) * int(e.get('chickens_per_box', 0)) for e in entries_data)
+    
+    from app.models import ChickenBatch, ChickenDaily
+    # Find active batch for this farm (one that covers today)
+    batch = ChickenBatch.query.filter(
+        ChickenBatch.farm_id == sale.farm_id,
+        ChickenBatch.start_date <= sale_date
+    ).order_by(ChickenBatch.start_date.desc()).first()
+    
+    if batch:
+        # Find the record for today or the sale date
+        daily_record = ChickenDaily.query.filter_by(batch_id=batch.id, entry_date=sale_date).first()
+        if daily_record:
+            daily_record.sold_count = (daily_record.sold_count or 0) + total_sold
+            
+            # Recalculate all subsequent days' remaining count
+            all_records = ChickenDaily.query.filter_by(batch_id=batch.id).order_by(ChickenDaily.day_number).all()
+            prev_rem = batch.initial_count
+            for r in all_records:
+                r.remaining = prev_rem - (r.deaths or 0) - (r.sold_count or 0)
+                prev_rem = r.remaining
+
     db.session.commit()
 
     return jsonify({'status': 'ok', 'message': 'Sale completed'})

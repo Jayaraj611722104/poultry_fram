@@ -74,7 +74,8 @@ def update_batch(batch_id):
         key = str(record.day_number)
         deaths = int(data.get(key, {}).get('deaths', 0))
         record.deaths = deaths
-        record.remaining = prev_remaining - deaths
+        # remaining = total - deaths - sold
+        record.remaining = prev_remaining - deaths - (record.sold_count or 0)
         prev_remaining = record.remaining
 
     db.session.commit()

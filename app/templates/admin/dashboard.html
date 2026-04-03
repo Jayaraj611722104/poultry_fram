@@ -66,6 +66,57 @@
         </div>
     </div>
 </div>
+<div class="row g-4 mt-2 mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="icon">📜</div>
+                <span data-ta="தொகுதி வாரியான அறிக்கைகள்" data-en="Comprehensive Batch Reports">Comprehensive Batch Reports</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th data-ta="பண்ணை பெயர்" data-en="Farm Name">Farm Name</th>
+                                <th data-ta="செயலில் உள்ள தொகுதி" data-en="Active Batch">Active Batch</th>
+                                <th class="text-center" data-ta="பதிவிறக்கம் (Report Download)" data-en="Download Reports">Download Reports</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for farm in all_farms %}
+                            {% set batch = farm.active_batch %}
+                            <tr>
+                                <td><strong>{{ farm.name }}</strong><br><small class="text-muted">{{ farm.village }}</small></td>
+                                <td>
+                                    {% if batch %}
+                                    <span class="badge bg-success-soft text-success">
+                                        {{ batch.batch_name or 'Batch #' ~ batch.id }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary-soft text-secondary">No Active Batch</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if batch %}
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('reports.export_batch_pdf', batch_id=batch.id) }}" class="btn btn-sm btn-outline-danger" title="PDF">
+                                            <i class="bi bi-file-earmark-pdf"></i> PDF
+                                        </a>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>

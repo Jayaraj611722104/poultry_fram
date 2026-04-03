@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from app.models import Farm, FeedStock, FeedUsage
+from app.models import Farm, FeedStock, FeedUsage, ChickenDaily
 from app import db
 from datetime import datetime
 from sqlalchemy import func
@@ -19,9 +19,19 @@ def index(farm_id):
     total_used = float(db.session.query(func.sum(FeedUsage.bags_used)).filter_by(farm_id=farm_id).scalar() or 0)
     remaining = total_added - total_used
 
+    active_batch = farm.active_batch
+    remaining_chickens = active_batch.initial_count if active_batch else 0
+    if active_batch and active_batch.daily_records:
+        # Get the latest record's remaining count
+        latest = db.session.query(ChickenDaily).filter_by(batch_id=active_batch.id).order_by(ChickenDaily.day_number.desc()).first()
+        if latest:
+            remaining_chickens = latest.remaining
+
     return render_template('feed/index.html',
                            farm=farm, stocks=stocks, usages=usages,
-                           total_added=total_added, total_used=total_used, remaining=remaining)
+                           total_added=total_added, total_used=total_used, remaining=remaining,
+                           active_batch=active_batch,
+                           remaining_chickens=remaining_chickens)
 
 
 @feed_bp.route('/<int:farm_id>/add-stock', methods=['POST'])

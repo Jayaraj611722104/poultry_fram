@@ -39,6 +39,11 @@ class Farm(db.Model):
     feed_usages = db.relationship('FeedUsage', backref='farm', lazy=True, cascade='all, delete-orphan')
     sales = db.relationship('Sale', backref='farm', lazy=True, cascade='all, delete-orphan')
 
+    @property
+    def active_batch(self):
+        from datetime import date
+        return next((b for b in self.chickens_batches if b.start_date <= date.today()), None)
+
 
 class ChickenBatch(db.Model):
     __tablename__ = 'chicken_batches'
@@ -50,6 +55,10 @@ class ChickenBatch(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     daily_records = db.relationship('ChickenDaily', backref='batch', lazy=True, cascade='all, delete-orphan')
+
+    def get_date_for_day(self, day_number):
+        from datetime import timedelta
+        return self.start_date + timedelta(days=day_number - 1)
 
 
 class ChickenDaily(db.Model):

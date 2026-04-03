@@ -23,11 +23,11 @@
       <i class="bi bi-file-earmark-excel-fill"></i>
       <span data-ta="எக்செல்" data-en="Excel">Excel</span>
     </a>
-    <a href="{{ url_for('reports.export_pdf', sale_id=sale.id) }}" class="btn-green" style="background:#c0392b">
+    <button class="btn-green" onclick="downloadPDF()" style="background:#c0392b; border:none;">
       <i class="bi bi-file-earmark-pdf-fill"></i>
-      <span data-ta="PDF" data-en="PDF">PDF</span>
-    </a>
-    <button class="btn-green" onclick="window.print()" style="background:#4361ee">
+      <span>PDF</span>
+    </button>
+    <button class="btn-green" onclick="window.print()" style="background:#4361ee; border:none;">
       <i class="bi bi-printer-fill"></i>
       <span data-ta="அச்சிடு" data-en="Print">Print</span>
     </button>
@@ -37,6 +37,12 @@
   </div>
 </div>
 
+<style>
+  #printArea, #printArea * {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
+    letter-spacing: normal !important;
+  }
+</style>
 <div id="printArea">
   <!-- Header -->
   <div class="card mb-3">
@@ -50,7 +56,7 @@
         <div class="col-md-6 text-md-end">
           <div style="font-size:1.1rem;font-weight:700;color:#1a472a">{{ sale.sale_code }}</div>
           <div class="text-muted" style="font-size:0.85rem">
-            <span data-ta="தேதி" data-en="Date">Date</span>: {{ sale.sale_date.strftime('%d %b %Y') if sale.sale_date else '—' }}
+            பதிவு தேதி (Date): {{ sale.sale_date.strftime('%d %b %Y') if sale.sale_date else '—' }}
           </div>
           <span class="{{ 'badge-completed' if sale.status == 'completed' else 'badge-draft' }}">{{ sale.status | upper }}</span>
         </div>
@@ -58,9 +64,9 @@
       {% if customer %}
       <hr style="border-color:#e8f0e8">
       <div class="row">
-        <div class="col-md-4"><small class="text-muted" data-ta="வாடிக்கையாளர்" data-en="Customer">Customer</small><div style="font-weight:600">{{ customer.name }}</div></div>
-        <div class="col-md-4"><small class="text-muted" data-ta="தொலைபேசி" data-en="Phone">Phone</small><div>{{ customer.phone or '—' }}</div></div>
-        <div class="col-md-4"><small class="text-muted" data-ta="வாகனம்" data-en="Vehicle">Vehicle</small><div>{{ customer.vehicle_number or '—' }}</div></div>
+        <div class="col-md-4 mb-2"><small class="text-muted d-block mb-1">வாடிக்கையாளர்<br>Customer</small><div style="font-weight:600">{{ customer.name }}</div></div>
+        <div class="col-md-4 mb-2"><small class="text-muted d-block mb-1">தொலைபேசி<br>Phone</small><div>{{ customer.phone or '—' }}</div></div>
+        <div class="col-md-4 mb-2"><small class="text-muted d-block mb-1">வாகனம்<br>Vehicle</small><div>{{ customer.vehicle_number or '—' }}</div></div>
       </div>
       {% endif %}
     </div>
@@ -68,19 +74,19 @@
 
   <!-- Entry Table -->
   <div class="card mb-3">
-    <div class="card-header"><div class="icon">📦</div> <span data-ta="விவர அட்டவணை" data-en="Entry Details Table">Entry Details Table</span></div>
+    <div class="card-header"><div class="icon">📦</div> விவர அட்டவணை (Entry Details)</div>
     <div class="card-body p-0">
       <div class="table-responsive">
         <table class="report-table">
           <thead>
             <tr>
-              <th data-ta="வ.எண்" data-en="S.No">S.No</th>
-              <th data-ta="வெற்று பெட்டிகள்" data-en="Empty Boxes">Empty Boxes</th>
-              <th data-ta="வெற்று எடை (kg)" data-en="Empty Wt (kg)">Empty Wt (kg)</th>
-              <th data-ta="பெட்டிக்கு கோழிகள்" data-en="Chickens/Box">Chickens/Box</th>
-              <th data-ta="ஏற்றும் எடை (kg)" data-en="Load Wt (kg)">Load Wt (kg)</th>
-              <th data-ta="மொத்த கோழிகள்" data-en="Total Chickens">Total Chickens</th>
-              <th data-ta="நிகர எடை (kg)" data-en="Net Wt (kg)">Net Wt (kg)</th>
+              <th>வ.எண்<br><small>(S.No)</small></th>
+              <th>வெற்று பெட்டிகள்<br><small>(Empty Boxes)</small></th>
+              <th>வெற்று எடை<br><small>(Empty Wt kg)</small></th>
+              <th>பெட்டிக்கு கோழிகள்<br><small>(Birds/Box)</small></th>
+              <th>ஏற்றும் எடை<br><small>(Load Wt kg)</small></th>
+              <th>மொத்த கோழிகள்<br><small>(Total Birds)</small></th>
+              <th>நிகர எடை<br><small>(Net Wt kg)</small></th>
             </tr>
           </thead>
           <tbody>
@@ -98,7 +104,7 @@
           </tbody>
           <tfoot>
             <tr>
-              <td data-ta="மொத்தம்" data-en="TOTAL">TOTAL</td>
+              <td>மொத்தம் (TOTAL)</td>
               <td>{{ ns.total_boxes }}</td>
               <td>{{ "%.2f"|format(ns.total_empty_wt) }}</td>
               <td>{{ ns.total_chickens }}</td>
@@ -116,34 +122,23 @@
   <div class="row g-3">
     <div class="col-md-6">
       <div class="summary-box">
-        <div style="font-size:1rem;font-weight:700;color:#b7e4c7;margin-bottom:14px">📊 <span data-ta="சுருக்கம்" data-en="Final Summary">Final Summary</span></div>
-        <div class="sum-row"><span class="sum-label" data-ta="நிகர எடை" data-en="Net Weight">Net Weight</span><span class="sum-val">{{ "%.2f"|format(ns.total_net_wt) }} kg</span></div>
-        <div class="sum-row"><span class="sum-label" data-ta="சராசரி எடை / கோழி" data-en="Average Weight / Chicken">Average Weight / Chicken</span><span class="sum-val">{{ "%.3f"|format(avg_wt) }} kg</span></div>
-        <div class="sum-row"><span class="sum-label" data-ta="டன்னேஜ்" data-en="Tonnage">Tonnage</span><span class="sum-val">{{ "%.4f"|format(tonnage) }} ton</span></div>
-        <div class="sum-row"><span class="sum-label" data-ta="மொத்த கோழிகள்" data-en="Total Chickens">Total Chickens</span><span class="sum-val">{{ ns.total_chickens }}</span></div>
-        <div class="sum-row"><span class="sum-label" data-ta="மொத்த பெட்டிகள்" data-en="Total Boxes">Total Boxes</span><span class="sum-val">{{ ns.total_boxes }}</span></div>
-        {% if customer and customer.price_per_kg %}
-        <div class="sum-row highlight">
-          <span class="sum-label">Price/kg</span>
-          <span class="sum-val">₹{{ customer.price_per_kg }}</span>
-        </div>
-        <div class="sum-row highlight">
-          <span class="sum-label">Total Amount</span>
-          <span class="sum-val">₹{{ "%.2f"|format(ns.total_net_wt * customer.price_per_kg) }}</span>
-        </div>
-        {% endif %}
+        <div style="font-size:1rem;font-weight:700;color:#b7e4c7;margin-bottom:14px">📊 இறுதி சுருக்கம் (Final Summary)</div>
+        <div class="sum-row align-items-center"><span class="sum-label">நிகர எடை<br><small>Net Weight</small></span><span class="sum-val">{{ "%.2f"|format(ns.total_net_wt) }} kg</span></div>
+        <div class="sum-row align-items-center"><span class="sum-label">சராசரி எடை<br><small>Avg Wt / Bird</small></span><span class="sum-val">{{ "%.3f"|format(avg_wt) }} kg</span></div>
+        <div class="sum-row align-items-center"><span class="sum-label">டன்னேஜ்<br><small>Tonnage</small></span><span class="sum-val">{{ "%.4f"|format(tonnage) }} ton</span></div>
+        <div class="sum-row align-items-center"><span class="sum-label">மொத்த கோழிகள்<br><small>Total Birds</small></span><span class="sum-val">{{ ns.total_chickens }}</span></div>
+        <div class="sum-row align-items-center"><span class="sum-label">மொத்த பெட்டிகள்<br><small>Total Boxes</small></span><span class="sum-val">{{ ns.total_boxes }}</span></div>
       </div>
     </div>
     <div class="col-md-6">
       <div class="card h-100">
-        <div class="card-header"><div class="icon">🚚</div> <span data-ta="வாடிக்கையாளர் தகவல்" data-en="Customer Info">Customer Info</span></div>
+        <div class="card-header"><div class="icon">🚚</div> வாடிக்கையாளர் தகவல் (Customer Info)</div>
         <div class="card-body">
           {% if customer %}
-          <table class="data-table">
-            <tr><td style="color:#6c757d;font-size:0.82rem" data-ta="பெயர்" data-en="Name">Name</td><td style="font-weight:600">{{ customer.name }}</td></tr>
-            <tr><td style="color:#6c757d;font-size:0.82rem" data-ta="தொலைபேசி" data-en="Phone">Phone</td><td>{{ customer.phone or '—' }}</td></tr>
-            <tr><td style="color:#6c757d;font-size:0.82rem" data-ta="வாகனம்" data-en="Vehicle">Vehicle</td><td>{{ customer.vehicle_number or '—' }}</td></tr>
-            <tr><td style="color:#6c757d;font-size:0.82rem" data-ta="விலை/கிலோ" data-en="Price/kg">Price/kg</td><td>{% if customer.price_per_kg %}₹{{ customer.price_per_kg }}{% else %}—{% endif %}</td></tr>
+          <table class="data-table w-100">
+            <tr><td style="color:#6c757d;font-size:0.82rem;padding-bottom:10px;">பெயர்<br>Name</td><td style="font-weight:600;padding-bottom:10px;">{{ customer.name }}</td></tr>
+            <tr><td style="color:#6c757d;font-size:0.82rem;padding-bottom:10px;">தொலைபேசி<br>Phone</td><td style="padding-bottom:10px;">{{ customer.phone or '—' }}</td></tr>
+            <tr><td style="color:#6c757d;font-size:0.82rem;">வாகனம்<br>Vehicle</td><td>{{ customer.vehicle_number or '—' }}</td></tr>
           </table>
           {% else %}
           <div class="text-muted text-center py-3">No customer details</div>
@@ -159,7 +154,49 @@
   .sidebar, .topbar, .page-header, .btn-green, .btn-outline-green { display: none !important; }
   .main-wrapper { margin-left: 0 !important; }
   .page-content { padding: 0 !important; }
-  .card { box-shadow: none !important; border: 1px solid #ccc !important; }
+  
+  /* Fix Chrome flexbox page-break bugs */
+  .row { display: block !important; }
+  .col-md-6, .col-md-4 { display: inline-block !important; vertical-align: top; width: 100% !important; margin-bottom: 1rem; }
+  @media (min-width: 768px) {
+    .col-md-6 { width: 48% !important; margin-right: 1%; }
+    .col-md-4 { width: 32% !important; margin-right: 1%; }
+  }
+  
+  .card, .summary-box { 
+    box-shadow: none !important; 
+    border: 1px solid #ccc !important; 
+    page-break-inside: avoid !important; 
+    break-inside: avoid !important; 
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
 }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function downloadPDF() {
+  const element = document.getElementById('printArea');
+  const opt = {
+    margin:       0.3,
+    filename:     'Sale_{{ sale.sale_code }}_{{ farm.name }}.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(element).save();
+}
+
+{% if auto_download %}
+window.onload = function() {
+  setTimeout(() => {
+    downloadPDF();
+    setTimeout(() => { window.history.back(); }, 1500);
+  }, 500);
+}
+{% endif %}
+</script>
 {% endblock %}

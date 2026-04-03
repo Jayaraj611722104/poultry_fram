@@ -30,13 +30,18 @@
   <div class="card-body">
     <div class="day-grid" id="dayGrid">
       {% for rec in records %}
-      <div class="day-card">
+      <div class="day-card" data-sold="{{ rec.sold_count or 0 }}">
         <div class="day-num" data-ta="நாள் {{ rec.day_number }}" data-en="Day {{ rec.day_number }}">Day {{ rec.day_number }}</div>
-        <div class="day-date">{{ rec.entry_date.strftime('%d/%m') if rec.entry_date else '' }}</div>
+        <div class="day-date">{{ rec.entry_date.strftime('%d/%m/%Y') if rec.entry_date else '' }}</div>
         <input type="number" class="day-input" id="day_{{ rec.day_number }}"
                value="{{ rec.deaths }}" min="0" placeholder="0"
                onchange="recalc()" oninput="recalc()">
         <div class="remaining" id="rem_{{ rec.day_number }}">🐔 {{ rec.remaining }}</div>
+        {% if rec.sold_count > 0 %}
+        <div class="sold-indicator" style="font-size:0.7rem;color:#e76f51;font-weight:600">
+          <span data-ta="விற்கப்பட்டது: {{ rec.sold_count }}" data-en="Sold: {{ rec.sold_count }}">Sold: {{ rec.sold_count }}</span>
+        </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -50,15 +55,25 @@ const totalDays = {{ batch.total_days }};
 function recalc() {
   let prev = initial;
   let totalDeaths = 0;
+  let totalSold = 0;
+  const cards = document.querySelectorAll('.day-card');
+  
   for (let d = 1; d <= totalDays; d++) {
     const inp = document.getElementById('day_' + d);
+    const card = document.querySelector(`.day-card:nth-child(${d})`);
+    const sold = card ? parseInt(card.getAttribute('data-sold')) || 0 : 0;
     const deaths = inp ? (parseInt(inp.value) || 0) : 0;
+    
     totalDeaths += deaths;
-    const rem = prev - deaths;
+    totalSold += sold;
+    
+    const rem = prev - deaths - sold;
     prev = Math.max(0, rem);
+    
     const remEl = document.getElementById('rem_' + d);
     if (remEl) remEl.textContent = '🐔 ' + prev;
   }
+  
   document.getElementById('totalDeaths').textContent = totalDeaths;
   document.getElementById('totalRemaining').textContent = prev;
   document.getElementById('mortality').textContent = ((totalDeaths / initial) * 100).toFixed(1) + '%';

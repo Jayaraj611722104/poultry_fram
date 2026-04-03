@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, send_file, request
 from flask_login import login_required, current_user
-from app.models import Farm, Sale, SaleEntry, Customer
+from app.models import Farm, Sale, SaleEntry, Customer, ChickenBatch, ChickenDaily, FeedUsage, FeedStock
 from app import db
 import io
 from datetime import datetime
@@ -145,9 +145,7 @@ def export_excel(sale_id):
         ('Tonnage', f'{round(tonnage, 4)} ton'),
     ]
     if sale.customer and sale.customer.price_per_kg:
-        amount = total_net_weight * sale.customer.price_per_kg
-        summaries.append(('Price/kg', f'₹{sale.customer.price_per_kg}'))
-        summaries.append(('Total Amount', f'₹{round(amount, 2)}'))
+        pass
 
     for label, value in summaries:
         ws.merge_cells(f'A{row}:C{row}')
@@ -175,111 +173,202 @@ def export_pdf(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     farm = Farm.query.filter_by(id=sale.farm_id).first_or_404()
 
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import cm
+    return render_template('reports/sale.html', sale=sale, farm=farm, auto_download=True)
+
+
+@reports_bp.route('/batch/<int:batch_id>/excel')
+@login_required
+def export_batch_excel(batch_id):
+    batch = ChickenBatch.query.get_or_404(batch_id)
+    farm = Farm.query.get(batch.farm_id)
+    dailies = ChickenDaily.query.filter_by(batch_id=batch.id).order_by(ChickenDaily.day_number).all()
+    usages = FeedUsage.query.filter_by(farm_id=farm.id).order_by(FeedUsage.day_number).all()
+    sales = Sale.query.filter_by(farm_id=farm.id, status='completed').filter(Sale.sale_date >= batch.start_date).all()
+
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    wb = Workbook()
+    
+    # Section Style
+    header_fill = PatternFill('solid', start_color='1a472a')
+    header_font = Font(bold=True, color='FFFFFF')
+    center = Alignment(horizontal='center')
+
+    # --- Sheet 1: Monitoring & Feed & FCR Summary ---
+    ws = wb.active
+    ws.title = "Batch Comprehensive Report"
+    
+    # Title
+    ws.merge_cells('A1:E1')
+    ws['A1'] = f"COMPREHENSIVE BATCH REPORT - {farm.name}"
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = center
+    
+    # Batch Info
+    ws['A3'] = "Batch Name:"
+    ws['B3'] = getattr(batch, 'batch_name', f"Batch #{batch.id}")
+    ws['A4'] = "Start Date:"
+    ws['B4'] = batch.start_date.strftime('%d/%m/%Y')
+    
+    # 1. Daily Records Table
+    row = 6
+    headers = ['Day', 'Date', 'Deaths', 'Sold', 'Remaining', 'Feed Used (bags)']
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=row, column=col)
+        cell.value = h
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center
+    
+    usage_dict = {u.day_number: u.bags_used for u in usages}
+    row += 1
+    total_deaths = 0
+    total_sold = 0
+    total_feed = 0
+    
+    for d in dailies:
+        f_used = usage_dict.get(d.day_number, 0)
+        ws.cell(row=row, column=1, value=d.day_number)
+        ws.cell(row=row, column=2, value=d.entry_date.strftime('%d/%m/%Y') if d.entry_date else '')
+        ws.cell(row=row, column=3, value=d.deaths)
+        ws.cell(row=row, column=4, value=d.sold_count)
+        ws.cell(row=row, column=5, value=d.remaining)
+        ws.cell(row=row, column=6, value=f_used)
+        total_deaths += d.deaths
+        total_sold += d.sold_count
+        total_feed += f_used
+        row += 1
+    
+    # Totals Row
+    ws.cell(row=row, column=1, value="TOTAL")
+    ws.cell(row=row, column=3, value=total_deaths)
+    ws.cell(row=row, column=4, value=total_sold)
+    ws.cell(row=row, column=6, value=total_feed)
+    for i in range(1, 7):
+        ws.cell(row=row, column=i).font = Font(bold=True)
+    
+    # 2. Sales Summary
+    row += 2
+    ws.merge_cells(f'A{row}:E{row}')
+    ws.cell(row=row, column=1, value="SALES SUMMARY").font = Font(bold=True)
+    row += 1
+    s_headers = ['Date', 'Code', 'Customer', 'Birds', 'Weight (kg)']
+    for col, h in enumerate(s_headers, 1):
+        ws.cell(row=row, column=col, value=h).fill = header_fill
+        ws.cell(row=row, column=col).font = header_font
+    
+    row += 1
+    total_sales_kg = 0
+    total_sales_birds = 0
+    for s in sales:
+        s_birds = sum(e.empty_boxes * e.chickens_per_box for e in s.entries)
+        s_kg = sum(e.load_weight - e.empty_weight for e in s.entries)
+        ws.cell(row=row, column=1, value=s.sale_date.strftime('%d/%m/%Y') if s.sale_date else '')
+        ws.cell(row=row, column=2, value=s.sale_code)
+        ws.cell(row=row, column=3, value=s.customer.name if s.customer else '')
+        ws.cell(row=row, column=4, value=s_birds)
+        ws.cell(row=row, column=5, value=round(s_kg, 2))
+        total_sales_kg += s_kg
+        total_sales_birds += s_birds
+        row += 1
+    
+    # 3. FCR Analysis
+    row += 2
+    avg_wt = total_sales_kg / total_sales_birds if total_sales_birds > 0 else 0
+    rem_birds = dailies[-1].remaining if dailies else batch.initial_count
+    total_live_weight = rem_birds * avg_wt
+    feed_kg = total_feed * 50
+    fcr = feed_kg / total_live_weight if total_live_weight > 0 else 0
+    
+    ws.cell(row=row, column=1, value="FCR ANALYSIS").font = Font(bold=True)
+    row += 1
+    ws.cell(row=row, column=1, value="Total Feed Consumed (kg)")
+    ws.cell(row=row, column=2, value=round(feed_kg, 2))
+    row += 1
+    ws.cell(row=row, column=1, value="Total Live Weight (kg)")
+    ws.cell(row=row, column=2, value=round(total_live_weight, 2))
+    row += 1
+    ws.cell(row=row, column=1, value="FCR")
+    ws.cell(row=row, column=2, value=round(fcr, 2)).font = Font(bold=True, color='e76f51')
 
     output = io.BytesIO()
-    doc = SimpleDocTemplate(output, pagesize=A4, leftMargin=1.5*cm, rightMargin=1.5*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
-
-    styles = getSampleStyleSheet()
-    green = colors.HexColor('#1a472a')
-    light_green = colors.HexColor('#d4edda')
-
-    title_style = ParagraphStyle('title', parent=styles['Title'], textColor=green, fontSize=18, spaceAfter=6)
-    normal_style = ParagraphStyle('normal', parent=styles['Normal'], fontSize=10)
-    bold_style = ParagraphStyle('bold', parent=styles['Normal'], fontSize=10, fontName='Helvetica-Bold')
-
-    story = []
-    story.append(Paragraph('🐔 Poultry Farm Sale Report', title_style))
-    story.append(Spacer(1, 0.3*cm))
-
-    info_data = [
-        [Paragraph(f'<b>Farm:</b> {farm.name}', normal_style), Paragraph(f'<b>Sale ID:</b> {sale.sale_code}', normal_style)],
-        [Paragraph(f'<b>Location:</b> {farm.village}, {farm.district}', normal_style), Paragraph(f'<b>Date:</b> {sale.sale_date or "N/A"}', normal_style)],
-        [Paragraph(f'<b>Phone:</b> {farm.phone}', normal_style), Paragraph(f'<b>Status:</b> {sale.status.upper()}', normal_style)],
-    ]
-    if sale.customer:
-        info_data.append([Paragraph(f'<b>Customer:</b> {sale.customer.name}', normal_style),
-                          Paragraph(f'<b>Vehicle:</b> {sale.customer.vehicle_number}', normal_style)])
-
-    info_table = Table(info_data, colWidths=[9*cm, 8*cm])
-    info_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), light_green),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('PADDING', (0, 0), (-1, -1), 6),
-    ]))
-    story.append(info_table)
-    story.append(Spacer(1, 0.5*cm))
-
-    headers = ['S.No', 'Empty\nBoxes', 'Empty Wt\n(kg)', 'Chickens\n/Box', 'Load Wt\n(kg)', 'Total\nChickens', 'Net Wt\n(kg)']
-    table_data = [headers]
-
-    total_empty_boxes = 0; total_empty_wt = 0; total_chickens = 0; total_load_wt = 0; total_net_wt = 0
-
-    for i, entry in enumerate(sale.entries, 1):
-        tc = entry.empty_boxes * entry.chickens_per_box
-        nw = entry.load_weight - entry.empty_weight
-        table_data.append([i, entry.empty_boxes, f'{entry.empty_weight:.2f}', entry.chickens_per_box,
-                           f'{entry.load_weight:.2f}', tc, f'{nw:.2f}'])
-        total_empty_boxes += entry.empty_boxes; total_empty_wt += entry.empty_weight
-        total_chickens += tc; total_load_wt += entry.load_weight; total_net_wt += nw
-
-    table_data.append(['TOTAL', total_empty_boxes, f'{total_empty_wt:.2f}', '',
-                       f'{total_load_wt:.2f}', total_chickens, f'{total_net_wt:.2f}'])
-
-    col_widths = [1.2*cm, 2*cm, 2.5*cm, 2.3*cm, 2.5*cm, 2.5*cm, 2.5*cm]
-    data_table = Table(table_data, colWidths=col_widths, repeatRows=1)
-    data_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), green),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('BACKGROUND', (0, -1), (-1, -1), light_green),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f0f7f0')]),
-        ('PADDING', (0, 0), (-1, -1), 5),
-    ]))
-    story.append(data_table)
-    story.append(Spacer(1, 0.5*cm))
-
-    avg_wt = total_net_wt / total_chickens if total_chickens > 0 else 0
-    tonnage = total_net_wt / 1000
-    summary = [
-        ['Net Weight', f'{total_net_wt:.2f} kg'],
-        ['Average Weight/Chicken', f'{avg_wt:.3f} kg'],
-        ['Tonnage', f'{tonnage:.4f} ton'],
-    ]
-    if sale.customer and sale.customer.price_per_kg:
-        summary.append(['Price per kg', f'₹{sale.customer.price_per_kg}'])
-        summary.append(['Total Amount', f'₹{total_net_wt * sale.customer.price_per_kg:.2f}'])
-
-    sum_table = Table(summary, colWidths=[8*cm, 9*cm])
-    sum_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), green),
-        ('TEXTCOLOR', (0, 0), (0, -1), colors.white),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('PADDING', (0, 0), (-1, -1), 8),
-        ('ROWBACKGROUNDS', (1, 0), (1, -1), [colors.white, light_green]),
-    ]))
-    story.append(sum_table)
-
-    doc.build(story)
+    wb.save(output)
     output.seek(0)
+    return send_file(output, download_name=f"Comprehensive_Report_{farm.name}.xlsx", as_attachment=True)
 
-    return send_file(
-        output,
-        download_name=f'Sale_{sale.sale_code}_{farm.name}.pdf',
-        as_attachment=True,
-        mimetype='application/pdf'
-    )
+
+@reports_bp.route('/batch/<int:batch_id>/pdf')
+@login_required
+def export_batch_pdf(batch_id):
+    batch = ChickenBatch.query.get_or_404(batch_id)
+    farm = Farm.query.get(batch.farm_id)
+    dailies = ChickenDaily.query.filter_by(batch_id=batch.id).order_by(ChickenDaily.day_number).all()
+    usages = FeedUsage.query.filter_by(farm_id=farm.id).order_by(FeedUsage.day_number).all()
+    sales = Sale.query.filter_by(farm_id=farm.id, status='completed').filter(Sale.sale_date >= batch.start_date).all()
+    feed_purchases = FeedStock.query.filter_by(farm_id=farm.id).filter(FeedStock.date >= batch.start_date).order_by(FeedStock.date).all()
+
+    u_dict = {u.day_number: u.bags_used for u in usages}
+    p_dict = {}
+    for p in feed_purchases:
+        p_dict[p.date] = p_dict.get(p.date, 0) + p.bags_added
+        
+    return render_template('reports/batch_pdf.html', batch=batch, farm=farm, dailies=dailies, usages=usages, sales=sales, u_dict=u_dict, p_dict=p_dict)
+
+
+@reports_bp.route('/batch/<int:batch_id>/docx')
+@login_required
+def export_batch_docx(batch_id):
+    batch = ChickenBatch.query.get_or_404(batch_id)
+    farm = Farm.query.get(batch.farm_id)
+    dailies = ChickenDaily.query.filter_by(batch_id=batch.id).order_by(ChickenDaily.day_number).all()
+    usages = FeedUsage.query.filter_by(farm_id=farm.id).order_by(FeedUsage.day_number).all()
+    sales = Sale.query.filter_by(farm_id=farm.id, status='completed').filter(Sale.sale_date >= batch.start_date).all()
+
+    try:
+        from docx import Document
+    except ImportError:
+        return "python-docx not installed.", 500
+
+    doc = Document()
+    doc.add_heading(f'Comprehensive Batch Report - {farm.name}', 0)
+    
+    # Monitoring
+    doc.add_heading('1. Chicken Daily Monitoring', level=1)
+    table = doc.add_table(rows=1, cols=5)
+    table.style = 'Table Grid'
+    hdr = table.rows[0].cells
+    hdr[0].text = 'Day'; hdr[1].text = 'Date'; hdr[2].text = 'Deaths'; hdr[3].text = 'Sold'; hdr[4].text = 'Remaining'
+    for d in dailies:
+        r = table.add_row().cells
+        r[0].text = str(d.day_number); r[1].text = d.entry_date.strftime('%d/%m/%Y'); r[2].text = str(d.deaths); r[3].text = str(d.sold_count); r[4].text = str(d.remaining)
+
+    # Feed
+    doc.add_heading('2. Feed Daily Usage', level=1)
+    ftable = doc.add_table(rows=1, cols=3)
+    ftable.style = 'Table Grid'
+    fhdr = ftable.rows[0].cells
+    fhdr[0].text = 'Day'; fhdr[1].text = 'Date'; fhdr[2].text = 'Bags Used'
+    u_dict = {u.day_number: u.bags_used for u in usages}
+    total_f = 0
+    for d in dailies:
+        f = u_dict.get(d.day_number, 0)
+        total_f += f
+        r = ftable.add_row().cells
+        r[0].text = str(d.day_number); r[1].text = d.entry_date.strftime('%d/%m/%Y'); r[2].text = f"{f:.1f}"
+
+    # FCR
+    total_sales_kg = sum(sum(e.load_weight - e.empty_weight for e in s.entries) for s in sales)
+    total_birds = sum(sum(e.empty_boxes * e.chickens_per_box for e in s.entries) for s in sales)
+    avg_wt = total_sales_kg / total_birds if total_birds > 0 else 0
+    fcr = (total_f * 50) / (dailies[-1].remaining * avg_wt) if dailies and (dailies[-1].remaining * avg_wt) > 0 else 0
+    
+    doc.add_heading('3. FCR Analysis', level=1)
+    doc.add_paragraph(f'Total Feed Consumed: {total_f * 50:.2f} kg')
+    doc.add_paragraph(f'FCR Value: {fcr:.2f}')
+
+    output = io.BytesIO()
+    doc.save(output)
+    output.seek(0)
+    return send_file(output, download_name=f"Comprehensive_Report_{farm.name}.docx", as_attachment=True)

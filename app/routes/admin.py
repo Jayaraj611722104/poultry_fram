@@ -63,4 +63,5 @@ def dashboard():
                           farm_data=farm_data, 
                           farm_chickens=farm_chickens,
                           user_role_data=user_role_data,
-                          user_performance=user_performance)
+                          user_performance=user_performance,
+                          all_farms=farms)

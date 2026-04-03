@@ -58,6 +58,39 @@
     </div>
 
     <div class="card mt-3">
+      <div class="card-header" style="background: linear-gradient(135deg, #1a472a, #2d6a4f); color: white;">
+        <div class="icon">🧮</div> <span data-ta="FCR பகுப்பாய்வு" data-en="FCR Analysis">FCR Analysis</span>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label" data-ta="சராசரி எடை (கிலோ)" data-en="Estimated Avg Weight (kg)">Estimated Avg Weight (kg)</label>
+          <input type="number" id="avgWeightInput" class="form-control" step="0.01" placeholder="2.28" oninput="calculateFCR()">
+        </div>
+        
+        <div class="fcr-results p-3 rounded" style="background: #f8f9fa; border: 1px solid #dee2e6;">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted" data-ta="மொத்த தீவனம் (கிலோ)" data-en="Total Feed (kg)">Total Feed (kg)</span>
+            <span id="fcrTotalFeed" class="fw-bold">{{ (total_used * 50) | round(2) }} kg</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted" data-ta="மொத்த எடை (கிலோ)" data-en="Total Live Weight (kg)">Total Live Weight (kg)</span>
+            <span id="fcrTotalWeight" class="fw-bold">0 kg</span>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fs-5 fw-bold" style="color: #2d6a4f">FCR</span>
+            <span id="fcrValue" class="fs-4 fw-bold" style="color: #e76f51">0.00</span>
+          </div>
+        </div>
+        
+        <div class="mt-3 small text-muted">
+          <i class="bi bi-info-circle"></i> 
+          <span data-ta="சூத்திரம்: மொத்த தீவனம் / (மீதமுள்ள கோழிகள் * சராசரி எடை)" data-en="Formula: Total Feed / (Remaining Birds * Avg Weight)">Formula: Total Feed / (Remaining Birds * Avg Weight)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
       <div class="card-header"><div class="icon">📋</div> <span data-ta="சேர்க்கை வரலாறு" data-en="Stock History">Stock History</span></div>
       <div class="card-body p-0">
         {% if stocks %}
@@ -104,11 +137,18 @@
         <div class="day-grid">
           {% for day in range(1, 51) %}
           {% set usage = usages | selectattr('day_number', 'equalto', day) | first %}
-          <div class="day-card">
+          {% set day_date = none %}
+          {% if active_batch %}
+            {% set day_date = active_batch.get_date_for_day(day) %}
+          {% endif %}
+          <div class="day-card" data-day="{{ day }}" data-date="{{ day_date.strftime('%Y-%m-%d') if day_date else '' }}">
             <div class="day-num" data-ta="நாள் {{ day }}" data-en="Day {{ day }}">Day {{ day }}</div>
+            <div class="day-date" style="font-size:0.65rem;color:#6c757d;margin-bottom:5px">
+              {{ day_date.strftime('%d/%m/%Y') if day_date else '' }}
+            </div>
             <input type="number" class="day-input" id="usage_{{ day }}" style="color:#2d6a4f"
                    value="{{ usage.bags_used if usage else 0 }}" min="0" step="0.5" placeholder="0">
-            <div class="day-date" style="font-size:0.7rem;color:#6c757d" data-ta="பைகள்" data-en="bags">bags</div>
+            <div class="day-label" style="font-size:0.7rem;color:#6c757d" data-ta="பைகள்" data-en="bags">bags</div>
           </div>
           {% endfor %}
         </div>
@@ -118,13 +158,34 @@
 </div>
 
 <script>
-document.getElementById('stockDate').value = new Date().toISOString().slice(0,10);
+const remainingChickens = {{ remaining_chickens or 0 }};
+const totalUsedBags = {{ total_used or 0 }};
+
+function calculateFCR() {
+  const avgWt = parseFloat(document.getElementById('avgWeightInput').value) || 0;
+  const totalFeedKg = totalUsedBags * 50;
+  const totalLiveWeight = remainingChickens * avgWt;
+  
+  document.getElementById('fcrTotalWeight').textContent = totalLiveWeight.toFixed(2) + ' kg';
+  
+  if (totalLiveWeight > 0) {
+    const fcr = totalFeedKg / totalLiveWeight;
+    document.getElementById('fcrValue').textContent = fcr.toFixed(2);
+  } else {
+    document.getElementById('fcrValue').textContent = '0.00';
+  }
+}
 
 function saveUsage() {
   const data = {};
   for (let d = 1; d <= 50; d++) {
     const el = document.getElementById('usage_' + d);
-    if (el) data[d] = { bags_used: parseFloat(el.value) || 0 };
+    const card = document.querySelector(`.day-card[data-day="${d}"]`);
+    const date = card ? card.getAttribute('data-date') : '';
+    if (el) data[d] = { 
+      bags_used: parseFloat(el.value) || 0,
+      date: date
+    };
   }
   fetch('{{ url_for("feed.save_usage", farm_id=farm.id) }}', {
     method: 'POST',

@@ -12,10 +12,13 @@ login_manager = LoginManager()
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'poultry-farm-secret-key-2026')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'DATABASE_URL',
-        'sqlite:///poultry_farm.db'
-    )
+    db_url = os.getenv('DATABASE_URL', 'sqlite:///poultry_farm.db')
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    if db_url.startswith('mysql://'):
+        db_url = db_url.replace('mysql://', 'mysql+pymysql://', 1)
+        
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)

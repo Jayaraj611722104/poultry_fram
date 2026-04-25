@@ -7,9 +7,15 @@ from datetime import date
 sales_bp = Blueprint('sales', __name__, url_prefix='/sales')
 
 
-def generate_sale_code():
-    last = Sale.query.order_by(Sale.id.desc()).first()
-    num = (last.id + 1) if last else 1
+def generate_sale_code(farm_id):
+    last = Sale.query.filter_by(farm_id=farm_id).order_by(Sale.id.desc()).first()
+    if last and last.sale_code.startswith('SALE_'):
+        try:
+            num = int(last.sale_code.split('_')[1]) + 1
+        except:
+            num = Sale.query.filter_by(farm_id=farm_id).count() + 1
+    else:
+        num = Sale.query.filter_by(farm_id=farm_id).count() + 1
     return f'SALE_{num:03d}'
 
 
@@ -36,7 +42,7 @@ def new_sale(farm_id):
     farm = Farm.query.filter_by(id=farm_id).first_or_404()
     if request.method == 'POST':
         sale = Sale(
-            sale_code=generate_sale_code(),
+            sale_code=generate_sale_code(farm_id),
             farm_id=farm_id,
             status='draft',
             sale_date=date.today()

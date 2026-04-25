@@ -112,9 +112,7 @@
         <a href="{{ url_for('reports.export_excel', sale_id=sale.id) }}" class="btn-green" style="justify-content:center;background:#217346">
           <i class="bi bi-file-earmark-excel-fill"></i> <span data-ta="எக்செல் பதிவிறக்கம்" data-en="Download Excel">Download Excel</span>
         </a>
-        <a href="{{ url_for('reports.export_pdf', sale_id=sale.id) }}" class="btn-green" style="justify-content:center;background:#c0392b">
-          <i class="bi bi-file-earmark-pdf-fill"></i> <span data-ta="PDF பதிவிறக்கம்" data-en="Download PDF">Download PDF</span>
-        </a>
+
       </div>
       {% endif %}
     </div>
@@ -227,7 +225,7 @@ function saveDraft() {
   fetch('/sales/api/save-draft/' + saleId, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ entries: getEntries() })
+    body: JSON.stringify({ entries: getEntries(), customer: getCustomer() })
   }).then(r => r.json()).then(res => {
     showToast(res.status === 'ok' ? (currentLang === 'ta' ? '💾 வரைவு சேமிக்கப்பட்டது — ' : '💾 Draft saved — ') + res.sale_code : (currentLang === 'ta' ? '❌ தவறு: ' : '❌ ') + res.message,
               res.status === 'ok' ? 'success' : 'danger');

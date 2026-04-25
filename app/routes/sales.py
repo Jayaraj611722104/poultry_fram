@@ -66,6 +66,7 @@ def save_draft(sale_id):
 
     data = request.get_json()
     entries_data = data.get('entries', [])
+    customer_data = data.get('customer', {})
 
     # Clear existing entries
     SaleEntry.query.filter_by(sale_id=sale_id).delete()
@@ -80,6 +81,17 @@ def save_draft(sale_id):
             load_weight=float(e.get('load_weight', 0))
         )
         db.session.add(entry)
+
+    if customer_data and customer_data.get('name'):
+        Customer.query.filter_by(sale_id=sale_id).delete()
+        customer = Customer(
+            sale_id=sale_id,
+            name=customer_data.get('name', ''),
+            phone=customer_data.get('phone', ''),
+            vehicle_number=customer_data.get('vehicle_number', ''),
+            price_per_kg=float(customer_data.get('price_per_kg', 0) or 0)
+        )
+        db.session.add(customer)
 
     db.session.commit()
     return jsonify({'status': 'ok', 'sale_code': sale.sale_code, 'message': 'Draft saved'})

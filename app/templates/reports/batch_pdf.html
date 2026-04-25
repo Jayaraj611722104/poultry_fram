@@ -15,8 +15,18 @@
 
 <style>
   #printArea, #printArea * {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
+    font-family: "Noto Sans Tamil", "Poppins", sans-serif !important;
     letter-spacing: normal !important;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
   }
 </style>
 <div id="printArea" style="background:#fff; padding:2rem; border-radius:12px; margin:0 auto; box-shadow:0 8px 24px rgba(0,0,0,0.05); color:#212529;">
@@ -90,20 +100,19 @@
     <tbody>
       {% set ns_sales = namespace(total_kg=0.0, total_birds=0) %}
       {% for s in sales %}
-        {% set s_birds = 0 %}
-        {% set s_kg = 0.0 %}
+        {% set ns_sale = namespace(s_birds=0, s_kg=0.0) %}
         {% for e in s.entries %}
-           {% set s_birds = s_birds + (e.empty_boxes * e.chickens_per_box) %}
-           {% set s_kg = s_kg + (e.load_weight - e.empty_weight) %}
+           {% set ns_sale.s_birds = ns_sale.s_birds + (e.empty_boxes * e.chickens_per_box) %}
+           {% set ns_sale.s_kg = ns_sale.s_kg + (e.load_weight - e.empty_weight) %}
         {% endfor %}
-        {% set ns_sales.total_kg = ns_sales.total_kg + s_kg %}
-        {% set ns_sales.total_birds = ns_sales.total_birds + s_birds %}
+        {% set ns_sales.total_kg = ns_sales.total_kg + ns_sale.s_kg %}
+        {% set ns_sales.total_birds = ns_sales.total_birds + ns_sale.s_birds %}
         <tr>
           <td>{{ s.sale_date.strftime('%d/%m/%Y') if s.sale_date else '' }}</td>
           <td>{{ s.sale_code }}</td>
           <td>{{ s.customer.name if s.customer else '' }}</td>
-          <td>{{ s_birds }}</td>
-          <td>{{ "%.2f"|format(s_kg) }}</td>
+          <td>{{ ns_sale.s_birds }}</td>
+          <td>{{ "%.2f"|format(ns_sale.s_kg) }}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -142,7 +151,8 @@ function downloadPDF() {
     filename:     'Comprehensive_Report_{{ farm.name }}.pdf',
     image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { scale: 2, useCORS: true },
-    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
   };
   html2pdf().set(opt).from(element).save();
 }

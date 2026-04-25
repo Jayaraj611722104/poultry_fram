@@ -19,10 +19,12 @@
 
 <div class="page-header">
   <div class="d-flex gap-2">
-    <a href="{{ url_for('reports.export_excel', sale_id=sale.id) }}" class="btn-green" style="background:#217346">
-      <i class="bi bi-file-earmark-excel-fill"></i>
-      <span data-ta="எக்செல்" data-en="Excel">Excel</span>
-    </a>
+      <a href="{{ url_for('reports.export_excel', sale_id=sale.id, lang='ta') }}" class="btn-green" style="background:#217346">
+        <i class="bi bi-file-earmark-excel-fill"></i> <span data-ta="எக்செல் (தமிழ்)" data-en="Excel (Tamil)">Excel (Tamil)</span>
+      </a>
+      <a href="{{ url_for('reports.export_excel', sale_id=sale.id, lang='en') }}" class="btn-green" style="background:#2d6a4f">
+        <i class="bi bi-file-earmark-excel-fill"></i> <span data-ta="எக்செல் (ஆங்)" data-en="Excel (Eng)">Excel (Eng)</span>
+      </a>
 
     <button class="btn-green" onclick="window.print()" style="background:#4361ee; border:none;">
       <i class="bi bi-printer-fill"></i>

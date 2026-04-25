@@ -103,6 +103,12 @@
                                         <a href="{{ url_for('reports.export_batch_pdf', batch_id=batch.id) }}" class="btn btn-sm btn-outline-danger" title="PDF">
                                             <i class="bi bi-file-earmark-pdf"></i> PDF
                                         </a>
+                                        <a href="{{ url_for('reports.export_batch_excel', batch_id=batch.id, lang='ta') }}" class="btn btn-sm btn-outline-success" title="Excel (Tamil)">
+                                            <i class="bi bi-file-earmark-excel"></i> TA
+                                        </a>
+                                        <a href="{{ url_for('reports.export_batch_excel', batch_id=batch.id, lang='en') }}" class="btn btn-sm btn-outline-success" title="Excel (English)">
+                                            <i class="bi bi-file-earmark-excel"></i> EN
+                                        </a>
                                     </div>
                                     {% else %}
                                     <span class="text-muted">—</span>

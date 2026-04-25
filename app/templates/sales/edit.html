@@ -109,9 +109,14 @@
         <a href="{{ url_for('reports.sale_report', sale_id=sale.id) }}" class="btn-outline-green" style="justify-content:center;border-color:rgba(255,255,255,0.3);color:#b7e4c7">
           <i class="bi bi-file-earmark-text"></i> <span data-ta="முழு அறிக்கையைக் காண்க" data-en="View Full Report">View Full Report</span>
         </a>
-        <a href="{{ url_for('reports.export_excel', sale_id=sale.id) }}" class="btn-green" style="justify-content:center;background:#217346">
-          <i class="bi bi-file-earmark-excel-fill"></i> <span data-ta="எக்செல் பதிவிறக்கம்" data-en="Download Excel">Download Excel</span>
-        </a>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('reports.export_excel', sale_id=sale.id, lang='ta') }}" class="btn-green flex-grow-1" style="justify-content:center;background:#217346">
+            <i class="bi bi-file-earmark-excel-fill"></i> <span data-ta="எக்செல் (தமிழ்)" data-en="Excel (Tamil)">Excel (Tamil)</span>
+          </a>
+          <a href="{{ url_for('reports.export_excel', sale_id=sale.id, lang='en') }}" class="btn-green flex-grow-1" style="justify-content:center;background:#2d6a4f">
+            <i class="bi bi-file-earmark-excel-fill"></i> <span data-ta="எக்செல் (ஆங்கிலம்)" data-en="Excel (English)">Excel (English)</span>
+          </a>
+        </div>
 
       </div>
       {% endif %}

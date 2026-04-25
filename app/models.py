@@ -42,7 +42,8 @@ class Farm(db.Model):
     @property
     def active_batch(self):
         from datetime import date
-        return next((b for b in self.chickens_batches if b.start_date <= date.today()), None)
+        sorted_batches = sorted(self.chickens_batches, key=lambda b: b.start_date, reverse=True)
+        return next((b for b in sorted_batches if b.start_date <= date.today()), None)
 
 
 class ChickenBatch(db.Model):

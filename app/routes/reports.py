@@ -22,13 +22,33 @@ def export_excel(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     farm = Farm.query.filter_by(id=sale.farm_id).first_or_404()
 
+    lang = request.args.get('lang', 'ta')
+    
+    t = {
+        'title': '🐔 POULTRY FARM SALE REPORT' if lang == 'en' else '🐔 பண்ணை விற்பனை அறிக்கை',
+        'farm': 'Farm:' if lang == 'en' else 'பண்ணை:',
+        'sale_id': 'Sale ID:' if lang == 'en' else 'விற்பனை குறியீடு:',
+        'village': 'Village:' if lang == 'en' else 'கிராமம்:',
+        'date': 'Date:' if lang == 'en' else 'தேதி:',
+        'phone': 'Phone:' if lang == 'en' else 'தொலைபேசி:',
+        'status': 'Status:' if lang == 'en' else 'நிலை:',
+        'customer': 'Customer:' if lang == 'en' else 'வாடிக்கையாளர்:',
+        'vehicle': 'Vehicle:' if lang == 'en' else 'வாகனம்:',
+        'headers': ['S.No', 'Empty Boxes', 'Empty Wt (kg)', 'Birds/Box', 'Load Wt (kg)', 'Total Birds', 'Net Wt (kg)'] if lang == 'en' else 
+                   ['வ.எண்', 'வெற்று பெட்டிகள்', 'வெற்று எடை (கிலோ)', 'கோழிகள்/பெட்டி', 'ஏற்றும் எடை (கிலோ)', 'மொத்த கோழிகள்', 'நிகர எடை'],
+        'total': 'TOTAL' if lang == 'en' else 'மொத்தம்',
+        'net_wt': 'Net Weight' if lang == 'en' else 'நிகர எடை',
+        'avg_wt': 'Average Weight/Bird' if lang == 'en' else 'சராசரி எடை',
+        'tonnage': 'Tonnage' if lang == 'en' else 'டன்னேஜ்',
+    }
+
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 
     wb = Workbook()
     ws = wb.active
-    ws.title = 'Sale Report'
+    ws.title = 'Sale Report' if lang == 'en' else 'விற்பனை அறிக்கை'
 
     # Colors
     header_fill = PatternFill('solid', start_color='1a472a')
@@ -61,35 +81,39 @@ def export_excel(sale_id):
 
     # Title
     ws.merge_cells('A1:G1')
-    set_cell(ws['A1'], '🐔 POULTRY FARM SALE REPORT', Font(name='Arial', bold=True, size=14, color='1a472a'), align=center)
+    set_cell(ws['A1'], t['title'], Font(name='Arial', bold=True, size=14, color='1a472a'), align=center)
     ws.row_dimensions[1].height = 30
 
     # Farm & Sale Info
     ws.merge_cells('A3:D3')
-    set_cell(ws['A3'], f'Farm: {farm.name}', bold_font, align=left)
+    set_cell(ws['A3'], f'{t["farm"]} {farm.name}', bold_font, align=left)
     ws.merge_cells('E3:G3')
-    set_cell(ws['E3'], f'Sale ID: {sale.sale_code}', bold_font, align=left)
+    set_cell(ws['E3'], f'{t["sale_id"]} {sale.sale_code}', bold_font, align=left)
 
     ws.merge_cells('A4:D4')
-    set_cell(ws['A4'], f'Village: {farm.village}, {farm.district}', normal_font, align=left)
+    set_cell(ws['A4'], f'{t["village"]} {farm.village}, {farm.district}', normal_font, align=left)
     ws.merge_cells('E4:G4')
-    set_cell(ws['E4'], f'Date: {sale.sale_date or "N/A"}', normal_font, align=left)
+    set_cell(ws['E4'], f'{t["date"]} {sale.sale_date or "N/A"}', normal_font, align=left)
 
     ws.merge_cells('A5:D5')
-    set_cell(ws['A5'], f'Phone: {farm.phone}', normal_font, align=left)
+    set_cell(ws['A5'], f'{t["phone"]} {farm.phone}', normal_font, align=left)
     ws.merge_cells('E5:G5')
-    set_cell(ws['E5'], f'Status: {sale.status.upper()}', Font(name='Arial', bold=True, size=10, color='2d6a4f'), align=left)
+    
+    sale_status_str = sale.status.upper()
+    if lang == 'ta':
+        sale_status_str = 'முடிந்தது' if sale.status == 'completed' else 'வரைவு'
+    set_cell(ws['E5'], f'{t["status"]} {sale_status_str}', Font(name='Arial', bold=True, size=10, color='2d6a4f'), align=left)
 
     if sale.customer:
         ws.merge_cells('A6:D6')
-        set_cell(ws['A6'], f'Customer: {sale.customer.name}', normal_font, align=left)
+        set_cell(ws['A6'], f'{t["customer"]} {sale.customer.name}', normal_font, align=left)
         ws.merge_cells('E6:G6')
-        set_cell(ws['E6'], f'Phone: {sale.customer.phone}', normal_font, align=left)
+        set_cell(ws['E6'], f'{t["phone"]} {sale.customer.phone}', normal_font, align=left)
         ws.merge_cells('A7:D7')
-        set_cell(ws['A7'], f'Vehicle: {sale.customer.vehicle_number}', normal_font, align=left)
+        set_cell(ws['A7'], f'{t["vehicle"]} {sale.customer.vehicle_number}', normal_font, align=left)
 
     # Table headers
-    headers = ['S.No', 'Empty Boxes', 'Empty Weight (kg)', 'Chickens/Box', 'Load Weight (kg)', 'Total Chickens', 'Net Weight (kg)']
+    headers = t['headers']
     col_widths = [8, 14, 18, 15, 18, 16, 16]
 
     row = 9
@@ -127,7 +151,7 @@ def export_excel(sale_id):
 
     # Totals row
     row += 1
-    totals = ['TOTAL', total_empty_boxes, round(total_empty_weight, 2), '',
+    totals = [t['total'], total_empty_boxes, round(total_empty_weight, 2), '',
               round(total_load_weight, 2), total_chickens_total, round(total_net_weight, 2)]
     for col, val in enumerate(totals, 1):
         cell = ws.cell(row=row, column=col)
@@ -140,12 +164,10 @@ def export_excel(sale_id):
     tonnage = total_net_weight / 1000
 
     summaries = [
-        ('Net Weight', f'{round(total_net_weight, 2)} kg'),
-        ('Average Weight/Chicken', f'{round(avg_weight, 3)} kg'),
-        ('Tonnage', f'{round(tonnage, 4)} ton'),
+        (t['net_wt'], f'{round(total_net_weight, 2)} kg'),
+        (t['avg_wt'], f'{round(avg_weight, 3)} kg'),
+        (t['tonnage'], f'{round(tonnage, 4)} ton'),
     ]
-    if sale.customer and sale.customer.price_per_kg:
-        pass
 
     for label, value in summaries:
         ws.merge_cells(f'A{row}:C{row}')
@@ -179,6 +201,21 @@ def export_pdf(sale_id):
 @reports_bp.route('/batch/<int:batch_id>/excel')
 @login_required
 def export_batch_excel(batch_id):
+    lang = request.args.get('lang', 'ta')
+    t = {
+        'title': 'COMPREHENSIVE BATCH REPORT' if lang == 'en' else 'தொகுதி அறிக்கை',
+        'sheet': 'Batch Report' if lang == 'en' else 'தொகுதி அறிக்கை',
+        'bname': 'Batch Name:' if lang == 'en' else 'தொகுதி பெயர்:',
+        'sdate': 'Start Date:' if lang == 'en' else 'தொடக்க தேதி:',
+        't1': ['Day', 'Date', 'Deaths', 'Sold', 'Remaining', 'Feed Used (bags)'] if lang == 'en' else ['நாள்', 'தேதி', 'இறப்பு', 'விற்பனை', 'இருப்பு', 'பயன்படுத்திய தீவனம் (பைகள்)'],
+        'tot': 'TOTAL' if lang == 'en' else 'மொத்தம்',
+        's_sum': 'SALES SUMMARY' if lang == 'en' else 'விற்பனை சுருக்கம்',
+        't2': ['Date', 'Code', 'Customer', 'Birds', 'Weight (kg)'] if lang == 'en' else ['தேதி', 'குறியீடு', 'வாடிக்கையாளர்', 'கோழிகள்', 'எடை (கிலோ)'],
+        'fcr': 'FCR ANALYSIS' if lang == 'en' else 'FCR பகுப்பாய்வு',
+        'feed': 'Total Feed Consumed (kg)' if lang == 'en' else 'மொத்த தீவனம் (கிலோ)',
+        'live': 'Total Live Weight (kg)' if lang == 'en' else 'மொத்த நேரடி எடை (கிலோ)',
+    }
+    
     batch = ChickenBatch.query.get_or_404(batch_id)
     farm = Farm.query.get(batch.farm_id)
     dailies = ChickenDaily.query.filter_by(batch_id=batch.id).order_by(ChickenDaily.day_number).all()
@@ -196,26 +233,24 @@ def export_batch_excel(batch_id):
     header_font = Font(bold=True, color='FFFFFF')
     center = Alignment(horizontal='center')
 
-    # --- Sheet 1: Monitoring & Feed & FCR Summary ---
     ws = wb.active
-    ws.title = "Batch Comprehensive Report"
+    ws.title = t['sheet']
     
     # Title
     ws.merge_cells('A1:E1')
-    ws['A1'] = f"COMPREHENSIVE BATCH REPORT - {farm.name}"
+    ws['A1'] = f"{t['title']} - {farm.name}"
     ws['A1'].font = Font(bold=True, size=14)
     ws['A1'].alignment = center
     
     # Batch Info
-    ws['A3'] = "Batch Name:"
-    ws['B3'] = getattr(batch, 'batch_name', f"Batch #{batch.id}")
-    ws['A4'] = "Start Date:"
+    ws['A3'] = t['bname']
+    ws['B3'] = getattr(batch, 'batch_name', f"Batch #{batch.id}" if lang == 'en' else f"தொகுதி #{batch.id}")
+    ws['A4'] = t['sdate']
     ws['B4'] = batch.start_date.strftime('%d/%m/%Y')
     
     # 1. Daily Records Table
     row = 6
-    headers = ['Day', 'Date', 'Deaths', 'Sold', 'Remaining', 'Feed Used (bags)']
-    for col, h in enumerate(headers, 1):
+    for col, h in enumerate(t['t1'], 1):
         cell = ws.cell(row=row, column=col)
         cell.value = h
         cell.fill = header_fill
@@ -242,7 +277,7 @@ def export_batch_excel(batch_id):
         row += 1
     
     # Totals Row
-    ws.cell(row=row, column=1, value="TOTAL")
+    ws.cell(row=row, column=1, value=t['tot'])
     ws.cell(row=row, column=3, value=total_deaths)
     ws.cell(row=row, column=4, value=total_sold)
     ws.cell(row=row, column=6, value=total_feed)
@@ -252,10 +287,9 @@ def export_batch_excel(batch_id):
     # 2. Sales Summary
     row += 2
     ws.merge_cells(f'A{row}:E{row}')
-    ws.cell(row=row, column=1, value="SALES SUMMARY").font = Font(bold=True)
+    ws.cell(row=row, column=1, value=t['s_sum']).font = Font(bold=True)
     row += 1
-    s_headers = ['Date', 'Code', 'Customer', 'Birds', 'Weight (kg)']
-    for col, h in enumerate(s_headers, 1):
+    for col, h in enumerate(t['t2'], 1):
         ws.cell(row=row, column=col, value=h).fill = header_fill
         ws.cell(row=row, column=col).font = header_font
     
@@ -282,12 +316,12 @@ def export_batch_excel(batch_id):
     feed_kg = total_feed * 50
     fcr = feed_kg / total_live_weight if total_live_weight > 0 else 0
     
-    ws.cell(row=row, column=1, value="FCR ANALYSIS").font = Font(bold=True)
+    ws.cell(row=row, column=1, value=t['fcr']).font = Font(bold=True)
     row += 1
-    ws.cell(row=row, column=1, value="Total Feed Consumed (kg)")
+    ws.cell(row=row, column=1, value=t['feed'])
     ws.cell(row=row, column=2, value=round(feed_kg, 2))
     row += 1
-    ws.cell(row=row, column=1, value="Total Live Weight (kg)")
+    ws.cell(row=row, column=1, value=t['live'])
     ws.cell(row=row, column=2, value=round(total_live_weight, 2))
     row += 1
     ws.cell(row=row, column=1, value="FCR")
